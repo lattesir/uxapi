@@ -1,0 +1,3 @@
+uxapi
+pyyaml
+python-dotenv
