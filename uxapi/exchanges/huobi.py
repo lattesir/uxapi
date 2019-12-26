@@ -52,6 +52,8 @@ class Huobi:
 
 
 class Huobipro(UXPatch, huobipro):
+    id = 'huobi'
+
     def describe(self):
         return self.deep_extend(super().describe(), {
             'has': {
@@ -142,6 +144,8 @@ class Huobipro(UXPatch, huobipro):
 
 
 class Huobidm(UXPatch, huobidm):
+    id = 'huobi'
+
     def describe(self):
         return self.deep_extend(super().describe(), {
             'deliveryHourUTC': 8,

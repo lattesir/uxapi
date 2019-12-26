@@ -727,9 +727,10 @@ class huobidm(Exchange):
     def cancel_order(self, id, symbol=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelOrder requires a symbol argument')
-        return self.cancel_orders([id], symbol, params)
+        ids = [id] if id else None
+        return self._do_cancel_orders(ids, symbol, params)
 
-    def cancel_orders(self, ids, symbol=None, params=None):
+    def _do_cancel_orders(self, ids, symbol=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelOrders requires a symbol argument')
         params = params or {}
@@ -766,6 +767,8 @@ class huobidm(Exchange):
         #   "ts": 1490759594752
         # }
         return  response
+
+    cancel_orders = _do_cancel_orders
 
     def cancel_all_orders(self, symbol=None, params=None):
         if symbol is None:
