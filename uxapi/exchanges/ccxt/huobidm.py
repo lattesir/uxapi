@@ -629,7 +629,7 @@ class huobidm(Exchange):
         cost = None
         remaining = None
         if filled is not None:
-            if average is not None:
+            if average is not None and average > 0:
                 contract_size = market['info']['contract_size']
                 cost = filled * contract_size / average
             if amount is not None:
