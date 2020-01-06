@@ -599,7 +599,7 @@ class huobidm(Exchange):
         open_orders = [order for order in orders if order.get('status') == 'open']
         if limit:
             open_orders = open_orders[0:limit]
-        return limit
+        return open_orders
 
     def parse_order(self, order, market):
         timestamp = self.safe_integer(order, 'create_at')
