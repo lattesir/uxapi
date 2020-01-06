@@ -602,7 +602,7 @@ class huobidm(Exchange):
         return open_orders
 
     def parse_order(self, order, market):
-        timestamp = self.safe_integer(order, 'create_at')
+        timestamp = self.safe_integer(order, 'created_at')
         status = self.safe_string(order, 'status')
         status = self.parse_order_status(status)
 
