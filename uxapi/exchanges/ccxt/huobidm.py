@@ -452,43 +452,35 @@ class huobidm(Exchange):
         return self.parse_trades(response['data']['trades'], market,
                                  since, limit)
 
-    def parse_trade(self, trade, market):
+    def parse_trade(self, trade, market=None):
         trade_id = self.safe_string_2(trade, 'id', 'match_id')
         order_id = self.safe_string(trade, 'order_id')
         timestamp = self.safe_integer_2(trade, 'ts', 'create_date')
         price = self.safe_float_2(trade, 'price', 'trade_price')
         amount = self.safe_float_2(trade, 'amount', 'trade_volume')
-        cost = None
-        if price is not None and amount is not None:
-            contract_size = market['info']['contract_size']
-            cost = contract_size * amount / price
-        direction = self.safe_string(trade, 'direction')
-        offset = self.safe_string(trade, 'offset')
-        if direction and offset:
-            side = f'{direction}&{offset}'
-        else:
-            side = direction
+        side = self.safe_string(trade, 'direction')
         role = self.safe_string(trade, 'role')
         fee = None
         fee_cost = self.safe_float(trade, 'trade_fee')
         if fee_cost is not None:
             fee = {
                 'cost': -fee_cost,
-                'currency': market['base'],
+                'currency': self.safe_string(trade, 'fee_asset'),
             }
+        symbol = market['symbol'] if market else None
         return {
             'id': trade_id,
             'info': trade,
-            'order': None,
+            'order': order_id,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
-            'symbol': market['symbol'],
+            'symbol': symbol,
             'type': None,
             'side': side,
             'takerOrMaker': role,
             'price': price,
             'amount': amount,
-            'cost': cost,
+            'cost': None,
             'fee': fee,
         }
 
@@ -601,7 +593,7 @@ class huobidm(Exchange):
             open_orders = open_orders[0:limit]
         return open_orders
 
-    def parse_order(self, order, market):
+    def parse_order(self, order, market=None):
         timestamp = self.safe_integer(order, 'created_at')
         status = self.safe_string(order, 'status')
         status = self.parse_order_status(status)
@@ -615,25 +607,14 @@ class huobidm(Exchange):
         elif contract_type == 'quarter':
             symbol = currency + '_CQ'
 
-        direction = self.safe_string(order, 'direction')
-        offset = self.safe_string(order, 'offset')
-        if direction and offset:
-            side = f'{direction}&{offset}'
-        else:
-            side = direction
-
+        side = self.safe_string(order, 'direction')
         price = self.safe_float(order, 'price')
         average = self.safe_float(order, 'trade_avg_price')
         amount = self.safe_float(order, 'volume')
         filled = self.safe_float(order, 'trade_volume')
-        cost = None
         remaining = None
-        if filled is not None:
-            if average is not None and average > 0:
-                contract_size = market['info']['contract_size']
-                cost = filled * contract_size / average
-            if amount is not None:
-                remaining = amount - filled
+        if filled is not None and amount is not None:
+            remaining = amount - filled
         fee = None
         fee_cost = self.safe_float(order, 'fee')
         if fee_cost is not None:
@@ -656,7 +637,7 @@ class huobidm(Exchange):
             'amount': amount,
             'filled': filled,
             'remaining': remaining,
-            'cost': cost,
+            'cost': None,
             'fee': fee,
             'info': order,
         }
