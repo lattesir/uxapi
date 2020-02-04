@@ -4,6 +4,7 @@ import gzip
 import json
 import collections
 import urllib.parse
+import bisect
 
 import yarl
 
@@ -38,9 +39,6 @@ class Huobi:
 
     def __getattr__(self, attr):
         return getattr(self._exchange, attr)
-
-    def order_book_merge(self):
-        raise NotImplementedError
 
     def wshandler(self, topic_set):
         wsapi_types = {self.wsapi_type(topic) for topic in topic_set}
@@ -92,6 +90,9 @@ class Huobipro(UXPatch, huobipro):
                 }
             },
         })
+ 
+    def order_book_merge(self):
+        raise NotImplementedError
 
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
@@ -168,6 +169,7 @@ class Huobidm(UXPatch, huobidm):
                 'market': {
                     'ticker': 'market.{symbol}.detail',
                     'orderbook': 'market.{symbol}.depth.{level}',
+                    'incremental': 'market.{symbol}.depth.size_{level}.high_freq',
                     'ohlcv': 'market.{symbol}.kline.{period}',
                     'trade': 'market.{symbol}.trade.detail',
                 },
@@ -178,6 +180,9 @@ class Huobidm(UXPatch, huobidm):
                 }
             },
         })
+
+    def order_book_merger(self):
+        return HuobidmOrderBookMerger()
 
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
@@ -208,8 +213,16 @@ class Huobidm(UXPatch, huobidm):
         else:  # 'private'
             params['currency'] = uxtopic.extrainfo.lower()
 
-        if maintype == 'orderbook':
-            params['level'] = subtypes[0] if subtypes else 'step0'
+        if maintype in ['orderbook', 'incremental']:
+            if not subtypes:
+                assert maintype == 'orderbook'
+                params['level'] = 'step0'
+            elif subtypes[0] == 'full':
+                assert maintype == 'orderbook'
+                maintype = 'incremental'
+                params['level'] = '150'
+            else:
+                params['level'] = subtypes[0]
         elif maintype == 'ohlcv':
             params['period'] = self.timeframes[subtypes[0]]
 
@@ -223,6 +236,59 @@ class Huobidm(UXPatch, huobidm):
                 return type
         raise ValueError('invalid topic')
 
+
+class HuobidmOrderBookMerger:
+    def __init__(self):
+        self.snapshot = None
+        self.prices = None
+
+    def __call__(self, msg):
+        tick = msg['tick']
+        if tick['event'] == 'snapshot':
+            self.snapshot = {
+                'asks': tick['asks'],
+                'bids': tick['bids'],
+                'timestamp': tick['ts'],
+                'version': tick['version']
+            }
+            self.prices = {
+                'asks': [float(item[0]) for item in self.snapshot['asks']],
+                'bids': [-float(item[0]) for item in self.snapshot['bids']]
+            }
+        elif tick['event'] == 'update':
+            if self.snapshot['version'] + 1 != tick['version']:
+                raise RuntimeError('version error')
+            self.merge(tick)
+        else:
+            raise ValueError('unexpected event')
+        return self.snapshot
+
+    def merge(self, tick):
+        self.snapshot['timestamp'] = tick['ts']
+        self.snapshot['version'] = tick['version']
+        self.merge_asks_bids('asks', tick['asks'])
+        self.merge_asks_bids('bids', tick['bids'])
+
+    def merge_asks_bids(self, key, lst):
+        for item in lst:
+            if key == 'asks':
+                price = float(item[0])
+            else:
+                price = -float(item[0])
+            amount = float(item[1])
+            array = self.prices[key]
+            i = bisect.bisect_left(array, price)
+            if i < len(array) and array[i] == price:
+                if amount == 0:
+                    array.pop(i)
+                    self.snapshot[key].pop(i)
+                else:
+                    self.snapshot[key][i] = item
+            else:
+                if amount != 0:
+                    array.insert(i, price)
+                    self.snapshot[key].insert(i, item)
+        
 
 class HuobiWSHandler(WSHandler):
     def __init__(self, exchange, wsurl, topic_set, wsapi_type):
@@ -317,6 +383,8 @@ class HuobiWSHandler(WSHandler):
                 request = {'op': 'sub', 'topic': topic}
             else:
                 request = {'sub': topic}
+                if 'depth' in topic and topic.endswith('.high_freq'):
+                    request['data_type'] = 'incremental'
             commands.append(request)
         return commands
 
