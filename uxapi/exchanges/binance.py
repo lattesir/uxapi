@@ -56,7 +56,10 @@ class Binance(UXPatch, ccxt.binance):
                     'quote': '{symbol}@bookTicker',
                     '!quote': '!bookTicker', 
                 },
-                'private': {'private': 'private'},
+                'private': {
+                    'private': 'private',
+                    'account+order': '{listenKey}',
+                },
                 'fmarket': {
                     'orderbook': '{symbol}@depth{level}',
                     'ohlcv': '{symbol}@kline_{period}',
@@ -67,7 +70,10 @@ class Binance(UXPatch, ccxt.binance):
                     'quote': '{symbol}@bookTicker',
                     '!quote': '!bookTicker',
                 },
-                'fprivate': {'private': 'private'},
+                'fprivate': {
+                    'private': 'private',
+                    'account+order': '{listenKey}',
+                },
             }
         })
 
