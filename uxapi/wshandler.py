@@ -36,33 +36,42 @@ class WSHandler:
                 raise RuntimeError(f'requires `{key}`')
         return result
 
-    async def run(self, collector):
+    async def run(self, collector=None):
         try:
-            await self._run(collector)
+            self.ws = await self.connect()
+            self.prepare()
+            await self.do_run(collector)
         finally:
-            await self._cleanup()
+            await self.cleanup()
 
-    async def _run(self, collector):
-        self.ws = await self.connect()
+    async def do_run(self, collector):
+        while True:
+            if 'recv' not in self.awaitables:
+                self.awaitables.create_task(self.recv(), 'recv')
+            name, result = await self.awaitables.wait()
+            if name == 'recv' and result is not None:
+                try:
+                    msg = self.pre_process(result)
+                except StopIteration:
+                    continue
+                else:
+                    if collector:
+                        collector(msg)
+
+    async def connect(self):
+        if not self.session:
+            self.session = Session()
+            self.own_session = True
+        ws = await self.session.ws_connect(self.wsurl)
         self.on_connected()
+        return ws
 
+    def prepare(self):
         self.create_keepalive_task()
         if self.login_required:
             self.create_login_task()
         else:
-            self.create_subscribe_task()
-
-        self.awaitables.create_task(self.recv(), 'recv')
-        while True:
-            name, result = await self.awaitables.wait()
-            if name == 'recv':
-                if result is not None:
-                    try:
-                        msg = self.pre_process(result)
-                        collector(msg)
-                    except StopIteration:
-                        pass
-                self.awaitables.create_task(self.recv(), 'recv')
+            self.on_prepared()
 
     def pre_process(self, data):
         msg = self.decode(data)
@@ -70,13 +79,6 @@ class WSHandler:
         for processor in self.pre_processors:
             msg = processor(msg)
         return msg
-
-    async def connect(self):
-        if not self.session:
-            self.session = Session()
-            self.own_session = True
-        ws = await self.session.ws_connect(self.wsurl)
-        return ws
 
     def on_connected(self):
         pass
@@ -112,6 +114,9 @@ class WSHandler:
 
     def on_logged_in(self):
         self.pre_processors.remove()
+        self.on_prepared()
+
+    def on_prepared(self):
         self.create_subscribe_task()
 
     def create_subscribe_task(self):
@@ -156,7 +161,7 @@ class WSHandler:
     def decode(self, data):
         return data
 
-    async def _cleanup(self):
+    async def cleanup(self):
         await self.awaitables.cleanup()
 
         if self.ws:

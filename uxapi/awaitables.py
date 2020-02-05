@@ -34,7 +34,10 @@ class Awaitables:
         return len(self.aws)
 
     def __contains__(self, aw):
-        return aw in self.aws
+        if isinstance(aw, str):
+            return aw in self.aws.values()
+        else:
+            return aw in self.aws
 
     def get_name(self, aw):
         return self.aws[aw]

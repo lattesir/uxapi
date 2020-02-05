@@ -91,7 +91,7 @@ class Huobipro(UXPatch, huobipro):
             },
         })
  
-    def order_book_merge(self):
+    def order_book_merger(self):
         raise NotImplementedError
 
     def _fetch_markets(self, params=None):
@@ -415,3 +415,30 @@ class HuobiWSHandler(WSHandler):
     def decode(self, data):
         msg = gzip.decompress(data).decode()
         return json.loads(msg)
+
+
+class HuobiWSReq(HuobiWSHandler):
+    def __init__(self, exchange, wsapi_type):
+        wsurl = exchange.urls['wsapi'][wsapi_type]
+        super().__init__(exchange, wsurl, None, wsapi_type)
+        self.queue = Queue()
+        self.future = None
+        self.timeout = 10.0  # in seconds
+
+    def on_prepared(self):
+        self.awaitables.create_task(self.sendreq(), 'sendreq')
+
+    async def do_run(self, collector):
+        await super().do_run(lambda r: self.future.set_result(r))
+
+    async def sendreq(self):
+        while True:
+            self.future, req = await self.queue.get()
+            await self.send(req)
+            await asyncio.wait_for(self.future, self.timeout)
+
+    def request(self, req):
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        self.queue.put_nowait((future, req))
+        return future

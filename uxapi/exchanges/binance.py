@@ -10,11 +10,7 @@ from uxapi import UXPatch
 from uxapi import Session
 from uxapi import WSHandler
 from uxapi import Awaitables
-from uxapi.helpers import (
-    deep_extend,
-    all_equal,
-    is_sorted,
-)
+from uxapi.helpers import deep_extend
 
 
 @register
@@ -178,14 +174,8 @@ class BinanceWSHandler(WSHandler):
     def login_required(self):
         return self.wsapi_type in ['private', 'fprivate']
 
-    def create_keepalive_task(self):
+    def prepare(self):
         pass
-
-    def create_login_task(self):
-        pass
-
-    def create_subscribe_task(self):
-        pass 
 
     def decode(self, data):
         return json.loads(data)

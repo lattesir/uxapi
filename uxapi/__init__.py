@@ -26,7 +26,12 @@ def new_exchange(exchange_id, market_type, config=None):
     return _registry[exchange_id](market_type, config)
 
 
-from uxapi.exchanges.okex import Okex
-from uxapi.exchanges.huobi import Huobi
-from uxapi.exchanges.bitmex import Bitmex
-from uxapi.exchanges.binance import Binance
+from uxapi.exchanges.okex import (
+    Okex, OkexWSHandler, OkexOrderBookMerger)
+from uxapi.exchanges.huobi import (
+    Huobi, Huobidm, Huobipro, HuobiWSHandler,
+    HuobidmOrderBookMerger, HuobiWSReq)
+from uxapi.exchanges.bitmex import (
+    Bitmex, BitmexWSHandler, BitmexOrderBookMerger)
+from uxapi.exchanges.binance import (
+    Binance, BinanceWSHandler, BinanceOrderBookMerger)
