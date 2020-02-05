@@ -157,6 +157,12 @@ huobi.spot.orderbook:
     datatype: orderbook
     extrainfo: BTC/USDT
 
+huobi.spot.orderbook.full:
+    exchange_id: huobi
+    market_type: spot
+    datatype: orderbook.full
+    extrainfo: BTC/USDT
+
 huobi.spot.ohlcv:
     exchange_id: huobi
     market_type: spot
@@ -183,6 +189,12 @@ huobi.futures.orderbook:
     exchange_id: huobi
     market_type: futures
     datatype: orderbook
+    extrainfo: BTC/USD.CQ
+
+huobi.futures.orderbook.full:
+    exchange_id: huobi
+    market_type: futures
+    datatype: orderbook.full
     extrainfo: BTC/USD.CQ
 
 huobi.futures.ohlcv:

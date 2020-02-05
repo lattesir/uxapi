@@ -54,9 +54,12 @@ class WSHandler:
                     msg = self.pre_process(result)
                 except StopIteration:
                     continue
-                else:
-                    if collector:
+
+                if collector:
+                    try:
                         collector(msg)
+                    except StopIteration:
+                        pass
 
     async def connect(self):
         if not self.session:

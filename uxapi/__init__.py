@@ -1,6 +1,7 @@
 from uxapi.__version__ import VERSION, __version__
 from uxapi.symbol import UXSymbol
 from uxapi.topic import UXTopic
+from uxapi.pipeline import Pipeline
 from uxapi.listiter import listiter
 from uxapi.event import Event
 from uxapi.queue import Queue
@@ -29,8 +30,9 @@ def new_exchange(exchange_id, market_type, config=None):
 from uxapi.exchanges.okex import (
     Okex, OkexWSHandler, OkexOrderBookMerger)
 from uxapi.exchanges.huobi import (
-    Huobi, Huobidm, Huobipro, HuobiWSHandler,
-    HuobidmOrderBookMerger, HuobiWSReq)
+    Huobi, HuobiWSHandler, HuobiWSReq,
+    Huobipro, HuobiproOrderBookMerger,
+    Huobidm, HuobidmOrderBookMerger)
 from uxapi.exchanges.bitmex import (
     Bitmex, BitmexWSHandler, BitmexOrderBookMerger)
 from uxapi.exchanges.binance import (

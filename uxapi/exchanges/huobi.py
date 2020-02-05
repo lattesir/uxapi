@@ -15,12 +15,14 @@ from uxapi import UXSymbol
 from uxapi import WSHandler
 from uxapi import UXPatch
 from uxapi import Queue
+from uxapi import Awaitables
 from uxapi.exchanges.ccxt import huobidm
 from uxapi.helpers import (
     all_equal,
     keysort,
     hmac,
-    extend
+    extend,
+    is_sorted
 )
 
 
@@ -80,6 +82,7 @@ class Huobipro(UXPatch, huobipro):
                     'ticker': 'market.{symbol}.detail',
                     'ohlcv': 'market.{symbol}.kline.{period}',
                     'orderbook': 'market.{symbol}.depth.{level}',
+                    'mbp': 'market.{symbol}.mbp.{level}',
                     'trade': 'market.{symbol}.trade.detail',
                     'bbo': 'market.{symbol}.bbo',
                 },
@@ -92,7 +95,7 @@ class Huobipro(UXPatch, huobipro):
         })
  
     def order_book_merger(self):
-        raise NotImplementedError
+        return HuobiproOrderBookMerger(self)
 
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
@@ -131,8 +134,16 @@ class Huobipro(UXPatch, huobipro):
         uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                             uxtopic.extrainfo)
         params['symbol'] = self.market_id(uxsymbol)
-        if maintype == 'orderbook':
-            params['level'] = subtypes[0] if subtypes else 'step0'
+        if maintype in ['orderbook', 'mbp']:
+            if not subtypes:
+                assert maintype == 'orderbook'
+                params['level'] = 'step0'
+            elif subtypes[0] == 'full':
+                assert maintype == 'orderbook'
+                template = self.wsapi[wsapi_type]['mbp']
+                params['level'] = '150'
+            else:
+                params['level'] = subtypes[0]
         if maintype == 'ohlcv':
             params['period'] = self.timeframes[subtypes[0]]
         return template.format(**params)
@@ -142,6 +153,105 @@ class Huobipro(UXPatch, huobipro):
             if uxtopic.maintype in self.wsapi[type]:
                 return type
         raise ValueError('invalid topic')
+
+
+class _HuobiOrderBookMerger:
+    def merge_asks_bids(self, snapshot_lst, patch_lst, price_lst, negative_price):
+        for item in patch_lst:
+            price, amount = item
+            if negative_price:
+                price = -price
+            i = bisect.bisect_left(price_lst, price)
+            if i != len(price_lst) and price_lst[i] == price:
+                if amount == 0:
+                    price_lst.pop(i)
+                    snapshot_lst.pop(i)
+                else:
+                    snapshot_lst[i] = item
+            else:
+                if amount != 0:
+                    price_lst.insert(i, price)
+                    snapshot_lst.insert(i, item)
+
+
+class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
+    def __init__(self, exchange):
+        self.exchange = exchange
+        self.snapshot = None
+        self.topic = None
+        self.wsreq = None
+        self.wsreq_task = None
+        self.future = None
+        self.cache = []
+        self.prices = None
+
+    def __call__(self, patch):
+        if self.snapshot:
+            self.merge(patch)
+            return self.snapshot
+
+        if self.wsreq is None:
+            self.topic = patch['ch']
+            self.start_wsreq()
+            
+        self.cache.append(patch)
+        if not self.future:
+            self.future = self.wsreq.request({
+                'req': self.topic
+            })
+        if not self.future.done():
+            raise StopIteration
+
+        snapshot = self.future.result()
+        self.future = None
+        seqnums = [item['tick']['prevSeqNum'] for item in self.cache]
+        snapshot_seq = snapshot['data']['seqNum']
+        assert is_sorted(seqnums)
+        i = bisect.bisect_left(seqnums, snapshot_seq)
+        if i != len(seqnums) and seqnums[i] == snapshot_seq:
+            self.stop_wsreq()
+            self.cache = self.cache[i:]
+            self.on_snapshot(snapshot)
+            return self.snapshot
+        raise StopIteration
+
+    def on_snapshot(self, snapshot):
+        self.snapshot = snapshot
+        self.prices = {
+            'asks': [item[0] for item in snapshot['data']['asks']],
+            'bids': [-item[0] for item in snapshot['data']['bids']]
+        }
+        for patch in self.cache:
+            self.merge(patch)
+        self.cache = None
+
+    def merge(self, patch):
+        self.snapshot['ts'] = patch['ts']
+        snapshot_data = self.snapshot['data']
+        patch_tick = patch['tick']
+        if snapshot_data['seqNum'] != patch_tick['prevSeqNum']:
+            raise RuntimeError('seqNum error')
+        snapshot_data['seqNum'] = patch_tick['seqNum']
+        self.merge_asks_bids(snapshot_data['asks'], patch_tick['asks'],
+                             self.prices['asks'], False)
+        self.merge_asks_bids(snapshot_data['bids'], patch_tick['bids'],
+                             self.prices['bids'], True)
+
+    def start_wsreq(self):
+        self.wsreq = HuobiWSReq(self.exchange, 'market')
+
+        async def run():
+            try:
+                await self.wsreq.run()
+            except asyncio.CancelledError:
+                pass
+
+        self.wsreq_task = Awaitables.default().create_task(run(), 'wsreq')
+
+    def stop_wsreq(self):
+        self.wsreq_task.cancel()
+        self.wsreq_task = None
+        self.wsreq = None
 
 
 class Huobidm(UXPatch, huobidm):
@@ -169,7 +279,7 @@ class Huobidm(UXPatch, huobidm):
                 'market': {
                     'ticker': 'market.{symbol}.detail',
                     'orderbook': 'market.{symbol}.depth.{level}',
-                    'incremental': 'market.{symbol}.depth.size_{level}.high_freq',
+                    'high_freq': 'market.{symbol}.depth.size_{level}.high_freq',
                     'ohlcv': 'market.{symbol}.kline.{period}',
                     'trade': 'market.{symbol}.trade.detail',
                 },
@@ -213,13 +323,13 @@ class Huobidm(UXPatch, huobidm):
         else:  # 'private'
             params['currency'] = uxtopic.extrainfo.lower()
 
-        if maintype in ['orderbook', 'incremental']:
+        if maintype in ['orderbook', 'high_freq']:
             if not subtypes:
                 assert maintype == 'orderbook'
                 params['level'] = 'step0'
             elif subtypes[0] == 'full':
                 assert maintype == 'orderbook'
-                maintype = 'incremental'
+                maintype = 'high_freq'
                 params['level'] = '150'
             else:
                 params['level'] = subtypes[0]
@@ -237,57 +347,43 @@ class Huobidm(UXPatch, huobidm):
         raise ValueError('invalid topic')
 
 
-class HuobidmOrderBookMerger:
+class HuobidmOrderBookMerger(_HuobiOrderBookMerger):
     def __init__(self):
         self.snapshot = None
         self.prices = None
 
-    def __call__(self, msg):
-        tick = msg['tick']
-        if tick['event'] == 'snapshot':
-            self.snapshot = {
-                'asks': tick['asks'],
-                'bids': tick['bids'],
-                'timestamp': tick['ts'],
-                'version': tick['version']
-            }
-            self.prices = {
-                'asks': [float(item[0]) for item in self.snapshot['asks']],
-                'bids': [-float(item[0]) for item in self.snapshot['bids']]
-            }
-        elif tick['event'] == 'update':
-            if self.snapshot['version'] + 1 != tick['version']:
-                raise RuntimeError('version error')
-            self.merge(tick)
+    def __call__(self, patch):
+        if patch['tick']['event'] == 'snapshot':
+            self.on_snapshot(patch)
+        elif patch['tick']['event'] == 'update':
+            self.merge(patch)
         else:
             raise ValueError('unexpected event')
         return self.snapshot
 
-    def merge(self, tick):
-        self.snapshot['timestamp'] = tick['ts']
-        self.snapshot['version'] = tick['version']
-        self.merge_asks_bids('asks', tick['asks'])
-        self.merge_asks_bids('bids', tick['bids'])
+    def on_snapshot(self, snapshot):
+        self.snapshot = snapshot
+        self.prices = {
+            'asks': [item[0] for item in snapshot['tick']['asks']],
+            'bids': [-item[0] for item in snapshot['tick']['bids']]
+        }
 
-    def merge_asks_bids(self, key, lst):
-        for item in lst:
-            if key == 'asks':
-                price = float(item[0])
-            else:
-                price = -float(item[0])
-            amount = float(item[1])
-            array = self.prices[key]
-            i = bisect.bisect_left(array, price)
-            if i < len(array) and array[i] == price:
-                if amount == 0:
-                    array.pop(i)
-                    self.snapshot[key].pop(i)
-                else:
-                    self.snapshot[key][i] = item
-            else:
-                if amount != 0:
-                    array.insert(i, price)
-                    self.snapshot[key].insert(i, item)
+    def merge(self, patch):
+        self.snapshot['ts'] = patch['ts']
+        snapshot_tick = self.snapshot['tick']
+        patch_tick = patch['tick']
+        if snapshot_tick['version'] + 1 != patch_tick['version']:
+            raise RuntimeError('version error')
+        snapshot_tick.update({
+            'mrid': patch_tick['mrid'],
+            'id': patch_tick['id'],
+            'ts': patch_tick['ts'],
+            'version': patch_tick['version'],
+        })
+        self.merge_asks_bids(snapshot_tick['asks'], patch_tick['asks'],
+                             self.prices['asks'], False)
+        self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
+                             self.prices['bids'], True)
         
 
 class HuobiWSHandler(WSHandler):
@@ -371,7 +467,7 @@ class HuobiWSHandler(WSHandler):
                 self.on_logged_in()
             else:
                 err_msg = msg['err-msg']
-                raise RuntimeError(f'login failed: {err_msg}') 
+                raise RuntimeError(f'login failed: {err_msg}')
             raise StopIteration
         else:
             return msg
