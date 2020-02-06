@@ -4,4 +4,7 @@ class Pipeline:
 
     def __call__(self, v):
         for processor in self.processors:
-            v = processor(v)
+            try:
+                v = processor(v)
+            except StopIteration:
+                break

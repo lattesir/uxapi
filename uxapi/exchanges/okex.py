@@ -271,60 +271,60 @@ class OkexOrderBookMerger:
         self.snapshot = None
         self.prices = None
 
-    def __call__(self, msg):
-        self.merge(msg['action'], msg['data'])
+    def __call__(self, patch):
+        if patch['action'] == 'partial':
+            self.on_snapshot(patch)
+        elif patch['action'] == 'update':
+            self.merge(patch)
+        else:
+            raise ValueError('unexpected action')
+        self.validate()
         return self.snapshot
 
-    def merge(self, action, patches):
-        if action == 'partial':
-            tsgetter = lambda p: to_timestamp(p['timestamp'])
-            assert is_sorted(patches, key=tsgetter)
-            self.snapshot = patches[-1]
-            self.prices = {
-                'asks': [float(item[0]) for item in self.snapshot['asks']],
-                'bids': [-float(item[0]) for item in self.snapshot['bids']]
-            }
-            assert is_sorted(self.prices['asks'])
-            assert is_sorted(self.prices['bids'])
-        elif action == 'update':
-            for patch in patches:
-                self.do_merge(patch)
-        else:
-            raise ValueError('invalid action')
-        self.validate()
+    def on_snapshot(self, snapshot):
+        data = snapshot['data'][-1]
+        self.snapshot = snapshot
+        self.snapshot['data'] = [data]
+        self.prices = {
+            'asks': [float(item[0]) for item in data['asks']],
+            'bids': [-float(item[0]) for item in data['bids']]
+        }
 
-    def do_merge(self, patch):
-        self.snapshot['timestamp'] = patch['timestamp']
-        self.snapshot['checksum'] = patch['checksum']
-        self.merge_asks_bids('asks', patch['asks'])
-        self.merge_asks_bids('bids', patch['bids'])
+    def merge(self, patch):
+        snapshot_data = self.snapshot['data'][0]
+        patch_data_list = patch['data']
+        for patch_data in patch_data_list:
+            snapshot_data['timestamp'] = patch_data['timestamp']
+            snapshot_data['checksum'] = patch_data['checksum']
+            self.merge_asks_bids(snapshot_data['asks'], patch_data['asks'],
+                                 self.prices['asks'], False)
+            self.merge_asks_bids(snapshot_data['bids'], patch_data['bids'],
+                                 self.prices['bids'], True)
 
-    def merge_asks_bids(self, key, patch):
-        for item in patch:
-            if key == 'asks':
-                price = float(item[0])
-            else:
-                price = -float(item[0])
-            amount = float(item[1])
-            array = self.prices[key]
-            i = bisect.bisect_left(array, price)
-            if i < len(array) and array[i] == price:
+    def merge_asks_bids(self, snapshot_lst, patch_lst, price_lst, negative_price):
+        for item in patch_lst:
+            price, amount = float(item[0]), float(item[1])
+            if negative_price:
+                price = -price
+            i = bisect.bisect_left(price_lst, price)
+            if i != len(price_lst) and price_lst[i] == price:
                 if amount == 0:
-                    array.pop(i)
-                    self.snapshot[key].pop(i)
+                    price_lst.pop(i)
+                    snapshot_lst.pop(i)
                 else:
-                    self.snapshot[key][i] = item
+                    snapshot_lst[i] = item
             else:
                 if amount != 0:
-                    array.insert(i, price)
-                    self.snapshot[key].insert(i, item)
+                    price_lst.insert(i, price)
+                    snapshot_lst.insert(i, item)
 
     def validate(self):
-        asks = (item[:2] for item in self.snapshot['asks'][:25])
-        bids = (item[:2] for item in self.snapshot['bids'][:25])
+        data = self.snapshot['data'][0]
+        asks = (item[:2] for item in data['asks'][:25])
+        bids = (item[:2] for item in data['bids'][:25])
         items = filter(None, chain(*zip_longest(bids, asks)))
         text = ':'.join(chain(*items))
         crc32 = binascii.crc32(text.encode())
-        checksum = self.snapshot['checksum'] & 0xffffffff
+        checksum = data['checksum'] & 0xffffffff
         if crc32 != checksum:
             raise RuntimeError('invalid order book data')

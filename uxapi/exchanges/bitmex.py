@@ -285,21 +285,49 @@ class BitmexWSHandler(WSHandler):
 class BitmexOrderBookMerger:
     def __init__(self):
         self.snapshot = None
+        self.data = None
 
-    def __call__(self, msg):
-        self.merge(msg['action'], msg['data'])
-        return list(self.snapshot.values())
-
-    def merge(self, action, patch):
-        if action == 'partial':
-            self.snapshot = {item['id']: item for item in patch}
-        elif action == 'update':
-            for item in patch:
-                self.snapshot[item['id']]['size'] = item['size']
-        elif action == 'delete':
-            for item in patch:
-                del self.snapshot[item['id']]
-        elif action == 'insert':
-            self.snapshot.update({item['id']: item for item in patch})
+    def __call__(self, patch):
+        if patch['action'] == 'partial':
+            self.on_snapshot(patch)
+        elif patch['action'] in ('update', 'delete', 'insert'):
+            self.merge(patch)
         else:
-            raise ValueError('invalid action')
+            raise ValueError('unexpected action')
+        return self.snapshot
+
+    def on_snapshot(self, snapshot):
+        self.snapshot = snapshot
+        self.data = {item['id']: item for item in snapshot['data']}
+        self.update_snapshot()
+
+    def merge(self, patch):
+        if not self.snapshot:
+            raise StopIteration
+
+        if patch['action'] == 'update':
+            for item in patch['data']:
+                self.data[item['id']]['size'] = item['size']
+
+        elif patch['action'] == 'delete':
+            for item in patch['data']:
+                del self.data[item['id']]
+            self.update_snapshot()
+
+        elif patch['action'] == 'insert':
+            self.data.update((item['id'], item) for item in patch['data'])
+            self.update_snapshot()
+
+    def update_snapshot(self):
+        def sortkey(item):
+            if item['side'] == 'Sell':
+                side = 0
+                price = item['price']
+            else:
+                side = 1
+                price = -item['price']
+            return side, price
+
+        data = sorted(self.data.values(), key=sortkey)
+        self.snapshot['data'] = data
+

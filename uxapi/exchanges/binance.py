@@ -184,13 +184,12 @@ class BinanceWSHandler(WSHandler):
 class BinanceOrderBookMerger:
     def __init__(self, exchange):
         self.exchange = exchange
+        self.snapshot = None
         self.cache = []
         self.future = None
-        self.snapshot = None
         self.prices = None
 
-    def __call__(self, msg):
-        patch = msg['data']
+    def __call__(self, patch):
         if self.snapshot:
             self.merge(patch)
             return self.snapshot
@@ -198,60 +197,61 @@ class BinanceOrderBookMerger:
         self.cache.append(patch)
         if not self.future:
             self.future = Awaitables.default().run_in_executor(
-                self.fetch_order_book, patch['s'])
+                self.fetch_order_book, patch['data']['s'])
         if not self.future.done():
             raise StopIteration
 
         snapshot = self.future.result()
         self.future = None
+        array = [patch['data']['u'] for patch in self.cache]
+        i = bisect.bisect_right(array, snapshot['lastUpdateId'])
+        self.cache = self.cache[i:]
         self.on_snapshot(snapshot)
         return self.snapshot
 
     def on_snapshot(self, snapshot):
         self.snapshot = snapshot
+        self.snapshot['lastUpdateId'] = None
         self.prices = {
             'asks': [float(item[0]) for item in snapshot['asks']],
             'bids': [-float(item[0]) for item in snapshot['bids']]
         }
-        array = [patch['u'] for patch in self.cache]
-        i = bisect.bisect_right(array, snapshot['lastUpdateId'])
-        self.snapshot['lastUpdateId'] = None
-        for patch in self.cache[i:]:
+        for patch in self.cache:
             self.merge(patch)
         self.cache = None
 
     def merge(self, patch):
+        data = patch['data']
         lastUpdateId = self.snapshot['lastUpdateId']
         if lastUpdateId:
-            if 'pu' in patch:   # binance futures
-                if patch['pu'] != lastUpdateId:
+            if 'pu' in data:   # binance futures
+                if data['pu'] != lastUpdateId:
                     raise ValueError('invalid patch')
             else:   # binance spot
-                if patch['U'] != lastUpdateId + 1:
+                if data['U'] != lastUpdateId + 1:
                     raise ValueError('invalid patch')
-        self.snapshot['lastUpdateId'] = patch['u']
-        self.merge_asks_bids('asks', patch['a'])
-        self.merge_asks_bids('bids', patch['b'])
+        self.snapshot['lastUpdateId'] = data['u']
+        self.merge_asks_bids(self.snapshot['asks'], data['a'],
+                             self.prices['asks'], False)
+        self.merge_asks_bids(self.snapshot['bids'], data['b'],
+                             self.prices['bids'], True)
 
-    def merge_asks_bids(self, key, patch):
-        for item in patch:
-            if key == 'asks':
-                price = float(item[0])
-            else:
-                price = -float(item[0])
-            amount = float(item[1])
-            array = self.prices[key]
-            i = bisect.bisect_left(array, price)
-            if i < len(array) and array[i] == price:
+    def merge_asks_bids(self, snapshot_lst, patch_lst, price_lst, negative_price):
+        for item in patch_lst:
+            price, amount = float(item[0]), float(item[1])
+            if negative_price:
+                price = -price
+            i = bisect.bisect_left(price_lst, price)
+            if i != len(price_lst) and price_lst[i] == price:
                 if amount == 0:
-                    array.pop(i)
-                    self.snapshot[key].pop(i)
+                    price_lst.pop(i)
+                    snapshot_lst.pop(i)
                 else:
-                    self.snapshot[key][i] = item
+                    snapshot_lst[i] = item
             else:
                 if amount != 0:
-                    array.insert(i, price)
-                    self.snapshot[key].insert(i, item)
+                    price_lst.insert(i, price)
+                    snapshot_lst.insert(i, item)
 
     def fetch_order_book(self, symbol):
         return self.exchange.publicGetDepth(params={
