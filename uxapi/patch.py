@@ -413,7 +413,7 @@ class UXPatch:
                 if symbol in self.markets:
                     return self.markets[symbol]
 
-        raise ValueError(f'symbol not found')
+        raise ValueError(f'symbol not found: {symbol}')
 
     def get_service_provider(self, service):
         service_providers = getattr(self, 'serviceProviders', {})

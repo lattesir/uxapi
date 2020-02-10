@@ -159,8 +159,11 @@ class Okex(UXPatch, ccxt.okex3):
             if maintype == 'ohlcv':
                 params['period_in_sec'] = self.timeframes[subtypes[0]]
             if maintype == 'orderbook':
-                params['level'] = subtypes[0] if subtypes else '5'
-                if params['level'] == 'full':
+                if not subtypes:
+                    params['level'] = '5'
+                elif subtypes[0] in ('full', 'tbt'):
+                    params['level'] = '_l2_tbt'
+                else:
                     params['level'] = ''
             return template.format(**params)
 

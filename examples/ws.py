@@ -129,6 +129,12 @@ bitmex.swap.orderbook:
     datatype: orderbook
     extrainfo: BTC/USD
 
+bitmex.swap.orderbook.ethusd:
+    exchange_id: bitmex
+    market_type: swap
+    datatype: orderbook
+    extrainfo: '!ETHUSD/BTC'
+
 bitmex.swap.quote:
     exchange_id: bitmex
     market_type: swap

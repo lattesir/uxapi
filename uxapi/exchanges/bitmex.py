@@ -114,17 +114,24 @@ class Bitmex(UXPatch, ccxt.bitmex):
 
     def convert_symbol(self, uxsymbol):
         if uxsymbol.market_type == 'swap':
-            return uxsymbol.name
-        if uxsymbol.market_type == 'futures':
-            delivery_time = contract_delivery_time(
-                expiration=uxsymbol.contract_expiration,
-                delivery_hour=self.deliveryHourUTC)
-            code = self._contract_code(delivery_time)
-            if uxsymbol.quote == 'USD':
-                if uxsymbol.base == 'BTC':
+            if uxsymbol.name == '!ETHUSD/BTC':
+                return 'ETH/USD'
+            elif uxsymbol.name == '!XRPUSD/BTC':
+                return 'XRP/USD'
+            elif uxsymbol.name == 'BTC/USD':
+                return uxsymbol.name
+
+        elif uxsymbol.market_type == 'futures':
+            if uxsymbol.base == 'BTC':
+                delivery_time = contract_delivery_time(
+                    expiration=uxsymbol.contract_expiration,
+                    delivery_hour=self.deliveryHourUTC)
+                code = self._contract_code(delivery_time)
+                if uxsymbol.quote == 'USD':
                     return f'XBT{code}'
-            elif uxsymbol.quote in ['ADA', 'BCH', 'EOS', 'ETH', 'LTC', 'TRX', 'XRP']:
-                return f'{uxsymbol.quote}{code}'
+                elif uxsymbol.quote in ('ADA', 'BCH', 'EOS', 'ETH', 'LTC', 'TRX', 'XRP'):
+                    return f'{uxsymbol.quote}{code}'
+
         raise ValueError('invalid symbol')
 
     @staticmethod
