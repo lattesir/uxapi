@@ -1,52 +1,52 @@
-from typing import NamedTuple
-
-
-class UXSymbol(NamedTuple):
-    exchange_id: str
-    market_type: str
-    name: str
+class UXSymbol:
+    def __init__(self, exchange_id, market_type, name):
+        self.exchange_id = exchange_id
+        self.market_type = market_type
+        self.name = name
+        self.isspecial = self.name.startswith('!')
+        if self.isspecial:
+            self._name_info = name[1:].split('.', maxsplit=2)
+        else:
+            self._name_info = name.split('.', maxsplit=2)
 
     @classmethod
     def fromstring(cls, s):
         return cls(*s.split(':'))
 
-    @classmethod
-    def fromargs(cls, exchange_id, market_type, **kwargs):
-        if market_type in ('spot', 'swap'):
-            if 'base' in kwargs and 'quote' in kwargs:
-                base = kwargs['base']
-                quote = kwargs['quote']
-                name = f'{base}/{quote}'.upper()
-                return cls(exchange_id, market_type, name)
-
-        if market_type == 'futures':
-            if 'base' in kwargs and 'contract_expiration' in kwargs:
-                base = kwargs['base']
-                quote = kwargs.get('quote') or 'USD'
-                contract_expiration = kwargs['contract_expiration']
-                name = f'{base}/{quote}.{contract_expiration}'.upper()
-                return cls(exchange_id, market_type, name)
-
-        raise ValueError('unknown market_type or missing arguments')
+    def __repr__(self):
+        args = ', '.join(repr(f) for f in self.fields)
+        return f'UXSymbol({args})'
 
     def __str__(self):
-        return self.name
+        return ':'.join(self.fields)
 
+    def __eq__(self, other):
+        if isinstance(other, UXSymbol):
+            return self.fields == other.fields
+        return False
+
+    def __hash__(self):
+        return hash(str(self))
+
+    @property
+    def fields(self):
+        return (self.exchange_id, self.market_type, self.name)
+
+    @property
     def base_quote(self):
-        base_quote, *_ = self.name.split('.')
-        assert '/' in base_quote, 'invalid format'
-        return base_quote.split('/')
+        assert '/' in self._name_info[0], 'invalid format'
+        base, quote = self._name_info[0].split('/', maxsplit=1)
+        return base, quote
 
     @property
     def base(self):
-        return self.base_quote()[0]
+        return self.base_quote[0]
 
     @property
     def quote(self):
-        return self.base_quote()[1]
+        return self.base_quote[1]
 
     @property
     def contract_expiration(self):
-        info = self.name.split('.')
-        assert len(info) > 1, 'invalid format'
-        return info[1]
+        assert len(self._name_info) >= 2, 'invalid format'
+        return self._name_info[1]

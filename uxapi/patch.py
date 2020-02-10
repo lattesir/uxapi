@@ -389,10 +389,10 @@ class UXPatch:
             return UXSymbol(self.id, self.market_type, symbol)
 
     def convert_symbol(self, uxsymbol):
-        return str(uxsymbol)
+        return uxsymbol.name
 
     def convert_topic(self, uxtopic):
-        return str(uxtopic)
+        raise NotImplementedError
 
     def market(self, symbol):
         if not self.markets:

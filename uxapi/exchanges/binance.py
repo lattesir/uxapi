@@ -102,7 +102,7 @@ class Binance(UXPatch, ccxt.binance):
 
     def convert_symbol(self, uxsymbol):
         if uxsymbol.market_type == 'spot':
-            return str(uxsymbol)
+            return uxsymbol.name
         elif uxsymbol.market_type == 'swap':
             return f'{uxsymbol.quote}/{uxsymbol.base}'
         else:
