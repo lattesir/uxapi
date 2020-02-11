@@ -153,6 +153,22 @@ bitmex.swap.myorder:
     datatype: myorder
     extrainfo: BTC/USD
 
+################
+# Bitmex Index
+################
+
+bitmex.index.quote:
+    exchange_id: bitmex
+    market_type: index
+    datatype: quote
+    extrainfo: .BXBT
+
+bitmex.index.trade:
+    exchange_id: bitmex
+    market_type: index
+    datatype: trade
+    extrainfo: .BXBT
+
 ##############
 # Huobi Spot
 ##############

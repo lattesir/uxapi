@@ -132,6 +132,9 @@ class Bitmex(UXPatch, ccxt.bitmex):
                 elif uxsymbol.quote in ('ADA', 'BCH', 'EOS', 'ETH', 'LTC', 'TRX', 'XRP'):
                     return f'{uxsymbol.quote}{code}'
 
+        elif uxsymbol.market_type == 'index':
+            return uxsymbol.name
+
         raise ValueError('invalid symbol')
 
     @staticmethod
