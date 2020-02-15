@@ -36,7 +36,7 @@ class Huobi:
         elif market_type == 'futures':
             cls = Huobidm
         else:
-            raise ValueError('invalid market_type: {market_type}')
+            raise ValueError(f'invalid market_type: {market_type}')
         self._exchange = cls(market_type, config)
 
     def __getattr__(self, attr):
