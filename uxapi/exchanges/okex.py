@@ -126,8 +126,13 @@ class Okex(UXPatch, ccxt.okex3):
     def convert_symbol(self, uxsymbol):
         if uxsymbol.market_type == 'spot':
             return uxsymbol.name
+
         if uxsymbol.market_type == 'swap':
-            return f'{uxsymbol.base}-{uxsymbol.quote}-SWAP'
+            if uxsymbol.base == 'USDT':
+                return f'{uxsymbol.quote}-{uxsymbol.base}-SWAP'
+            elif uxsymbol.quote == 'USD':
+                return f'{uxsymbol.base}-{uxsymbol.quote}-SWAP'
+
         if uxsymbol.market_type == 'futures':
             delivery_time = contract_delivery_time(
                 expiration=uxsymbol.contract_expiration,
@@ -136,11 +141,11 @@ class Okex(UXPatch, ccxt.okex3):
                 return f'{uxsymbol.quote}-{uxsymbol.base}-{delivery_time:%y%m%d}'
             elif uxsymbol.quote == 'USD':
                 return f'{uxsymbol.base}-{uxsymbol.quote}-{delivery_time:%y%m%d}'
-            else:
-                raise ValueError(f'invalid symbol: {uxsymbol}')
+
         if uxsymbol.market_type == 'index':
             return f'{uxsymbol.base}-{uxsymbol.quote}'
-        raise ValueError(f'unknown market_type: {uxsymbol.market_type}')
+
+        raise ValueError(f'invalid symbol: {uxsymbol}')
 
     def convert_topic(self, uxtopic):
         maintype = uxtopic.maintype

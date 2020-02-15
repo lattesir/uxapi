@@ -293,6 +293,18 @@ okex.futures.ticker:
     datatype: ticker
     extrainfo: BTC/USD.CQ
 
+okex.futures.position:
+    exchange_id: okex
+    market_type: futures
+    datatype: position
+    extrainfo: BTC/USD.CQ
+
+okex.futures.myorder:
+    exchange_id: okex
+    market_type: futures
+    datatype: myorder
+    extrainfo: BTC/USD.CQ
+
 #############
 # Okex Swap
 #############
