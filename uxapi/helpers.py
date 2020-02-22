@@ -1,4 +1,5 @@
 import os
+import time
 import asyncio
 import hmac as _hmac
 import base64
@@ -7,6 +8,10 @@ import itertools
 import functools
 from operator import itemgetter
 import pendulum
+
+
+def current_timstamp():
+    return int(time.time()) * 1000
 
 
 def is_sorted(iterable, *, key=None, reverse=False):

@@ -19,24 +19,22 @@ class Awaitables:
     def default():
         return _default
 
-    @staticmethod
-    def set_default(aws):
-        _default = aws
-
     def __init__(self):
         self.aws = {}
         self.aws_changed = Event()
 
     def __iter__(self):
-        return iter(self.aws.keys())
+        return iter(self.aws)
 
     def __len__(self):
         return len(self.aws)
 
-    def __contains__(self, aw):
-        if isinstance(aw, str):
-            return aw in self.aws.values()
+    def __contains__(self, aw_or_name):
+        if isinstance(aw_or_name, str):
+            name = aw_or_name
+            return bool(name and name in self.aws.values())
         else:
+            aw = aw_or_name
             return aw in self.aws
 
     def get_name(self, aw):
@@ -108,3 +106,13 @@ class Awaitables:
 
 
 _default = Awaitables()
+
+
+def run_in_executor(func, executor=None, name=None):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return Awaitables.default().run_in_executor(
+            functools.partial(func, *args, **kwargs),
+            executor=executor,
+            name=name)
+    return func

@@ -8,6 +8,7 @@ from uxapi.queue import Queue
 from uxapi.session import Session
 from uxapi.awaitables import (
     Awaitables,
+    run_in_executor,
     ExecutionResult,
     ExecutionError,
 )
