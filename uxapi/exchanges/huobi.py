@@ -64,12 +64,6 @@ class Huobipro(UXPatch, huobipro):
                 'cancelAllOrders': True,
             },
 
-            'api': {
-                'private': {
-                    'post': 'order/orders/batchCancelOpenOrders',
-                }
-            },
-
             'urls': {
                 'wsapi': {
                     'market': 'wss://api.huobi.pro/ws',
