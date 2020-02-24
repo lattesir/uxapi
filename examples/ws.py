@@ -203,6 +203,24 @@ huobi.spot.myorder:
     datatype: myorder
     extrainfo: BTC/USDT
 
+huobi.spot.accounts:
+    exchange_id: huobi
+    market_type: spot
+    datatype: accounts.1
+    extrainfo: ''
+
+huobi.spot.v2_clearing:
+    exchange_id: huobi
+    market_type: spot
+    datatype: v2_clearing
+    extrainfo: BTC/USDT
+
+huobi.spot.v2_accounts:
+    exchange_id: huobi
+    market_type: spot
+    datatype: v2_accounts.1
+    extrainfo: ''
+
 ################
 # Huobi Futures
 ################
@@ -217,6 +235,12 @@ huobi.futures.orderbook.full:
     exchange_id: huobi
     market_type: futures
     datatype: orderbook.full
+    extrainfo: BTC/USD.CQ
+
+huobi.futures.high_freq:
+    exchange_id: huobi
+    market_type: futures
+    datatype: high_freq.150.incremental
     extrainfo: BTC/USD.CQ
 
 huobi.futures.ohlcv:

@@ -5,6 +5,7 @@ import json
 import collections
 import urllib.parse
 import bisect
+from urllib.parse import parse_qs
 
 import yarl
 
@@ -22,6 +23,7 @@ from uxapi.helpers import (
     keysort,
     hmac,
     extend,
+    deep_extend,
     is_sorted
 )
 
@@ -33,10 +35,8 @@ class Huobi:
     def __init__(self, market_type, config):
         if market_type == 'spot':
             cls = Huobipro
-        elif market_type == 'futures':
-            cls = Huobidm
         else:
-            raise ValueError(f'invalid market_type: {market_type}')
+            cls = Huobidm
         self._exchange = cls(market_type, config)
 
     def __getattr__(self, attr):
@@ -68,6 +68,8 @@ class Huobipro(UXPatch, huobipro):
                 'wsapi': {
                     'market': 'wss://api.huobi.pro/ws',
                     'private': 'wss://api.huobi.pro/ws/v1',
+                    'private_v2': 'wss://api.huobi.pro/ws/v2',
+                    'private_v2_aws': 'wss://api-aws.huobi.pro/ws/v2',
                 },
             },
 
@@ -81,9 +83,13 @@ class Huobipro(UXPatch, huobipro):
                     'bbo': 'market.{symbol}.bbo',
                 },
                 'private': {
-                    'accounts': 'accounts',
+                    'accounts': 'accounts?model={model}',
                     'myorder': 'orders.{symbol}.update',
                     'myorder_deprecated': 'orders.{symbol}',
+                },
+                'private_v2': {
+                    'v2_accounts': 'accounts.update{mode}',
+                    'v2_clearing': 'trade.clearing#{symbol}'
                 }
             },
         })
@@ -122,8 +128,14 @@ class Huobipro(UXPatch, huobipro):
         subtypes = uxtopic.subtypes
         wsapi_type = self.wsapi_type(uxtopic)
         template = self.wsapi[wsapi_type][maintype]
+
         if maintype == 'accounts':
-            return template
+            model = '1' if subtypes and subtypes[0] == '1' else '0'
+            return template.format(model=model)
+        if maintype == 'v2_accounts':
+            mode = '#1' if subtypes and subtypes[0] == '1' else ''
+            return template.format(mode=mode)
+
         params = {}
         uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                             uxtopic.extrainfo)
@@ -273,7 +285,7 @@ class Huobidm(UXPatch, huobidm):
                 'market': {
                     'ticker': 'market.{symbol}.detail',
                     'orderbook': 'market.{symbol}.depth.{level}',
-                    'high_freq': 'market.{symbol}.depth.size_{level}.high_freq',
+                    'high_freq': 'market.{symbol}.depth.size_{level}.high_freq?data_type={data_type}',
                     'ohlcv': 'market.{symbol}.kline.{period}',
                     'trade': 'market.{symbol}.trade.detail',
                 },
@@ -317,16 +329,19 @@ class Huobidm(UXPatch, huobidm):
         else:  # 'private'
             params['currency'] = uxtopic.extrainfo.lower()
 
-        if maintype in ['orderbook', 'high_freq']:
+        if maintype == 'orderbook':
             if not subtypes:
-                assert maintype == 'orderbook'
                 params['level'] = 'step0'
             elif subtypes[0] == 'full':
-                assert maintype == 'orderbook'
                 maintype = 'high_freq'
                 params['level'] = '150'
+                params['data_type'] = 'incremental'
             else:
                 params['level'] = subtypes[0]
+        elif maintype == 'high_freq':
+            assert subtypes and len(subtypes) == 2
+            params['level'] = subtypes[0]
+            params['data_type'] = subtypes[1]
         elif maintype == 'ohlcv':
             params['period'] = self.timeframes[subtypes[0]]
 
@@ -384,9 +399,10 @@ class HuobiWSHandler(WSHandler):
     def __init__(self, exchange, wsurl, topic_set, wsapi_type):
         super().__init__(exchange, wsurl, topic_set)
         self.wsapi_type = wsapi_type
+        self.is_huobidm = (exchange.market_type != 'spot')
 
     def on_connected(self):
-        if self.wsapi_type == 'private':
+        if self.is_huobidm and self.wsapi_type == 'private':
             self.pre_processors.append(self.on_error_message)
 
     def on_error_message(self, msg):
@@ -403,23 +419,30 @@ class HuobiWSHandler(WSHandler):
 
     async def keepalive(self):
         while True:
-            ping = await self.keepalive_msq.get()
+            msg = await self.keepalive_msq.get()
             try:
                 while True:
-                    ping = self.keepalive_msq.get_nowait()
+                    msg = self.keepalive_msq.get_nowait()
             except asyncio.QueueEmpty:
                 pass
 
-            if 'ping' in ping:
+            if 'ping' in msg:
                 # {"ping": 18212558000}
-                pong = {'pong': ping['ping']}
-            else:
+                pong = {'pong': msg['ping']}
+            elif msg.get('op') == 'ping':
                 # {"op": "ping", "ts": 1492420473058}
-                pong = {'op': 'pong', 'ts': ping['ts']}
+                pong = {'op': 'pong', 'ts': msg['ts']}
+            else:
+                # {"action": "ping", "data": {"ts": 1575537778295}}
+                pong = {
+                    'action': 'pong',
+                    'data': {'ts': msg['data']['ts']}
+                }
             await self.send(pong)
 
     def on_keepalive_message(self, msg):
-        if 'ping' in msg or msg.get('op') == 'ping':
+        if ('ping' in msg or msg.get('op') == 'ping'
+                or msg.get('action') == 'ping'):
             self.keepalive_msq.put_nowait(msg)
             raise StopIteration
         else:
@@ -427,83 +450,141 @@ class HuobiWSHandler(WSHandler):
 
     @property
     def login_required(self):
-        return self.wsapi_type == 'private'
+        return 'private' in self.wsapi_type
+
+    def on_login_message(self, msg):
+        login_msg = False
+        login_ok = False
+
+        if msg.get('op') == 'auth':
+            login_msg = True
+            login_ok = (msg['err-code'] == 0)
+        elif msg.get('action') == 'req' and msg.get('ch') == 'auth':
+            login_msg = True
+            login_ok = (msg['code'] == 200)
+
+        if login_msg:
+            if login_ok:
+                self.logger.info(f'logged in')
+                self.on_logged_in()
+                raise StopIteration
+            else:
+                raise RuntimeError(f'login failed: {msg}')
+        return msg
 
     def login_command(self, credentials):
+        signature_method = 'HmacSHA256'
+        apikey = credentials['apiKey']
         now = datetime.datetime.utcnow()
         timestamp = now.isoformat(timespec='seconds')
-        params = keysort({
-            'SignatureMethod': 'HmacSHA256',
-            'SignatureVersion': '2',
-            'AccessKeyId': credentials['apiKey'],
-            'Timestamp': timestamp
-        })
+
+        if self.wsapi_type == 'private':
+            params = keysort({
+                'SignatureMethod': signature_method,
+                'SignatureVersion': '2',
+                'AccessKeyId': apikey,
+                'Timestamp': timestamp
+            })
+        else:   # private_v2
+            params = keysort({
+                'signatureMethod': signature_method,
+                'signatureVersion': '2.1',
+                'accessKey': apikey,
+                'timestamp': timestamp
+            })
         auth = urllib.parse.urlencode(params)
         url = yarl.URL(self.wsurl)
         payload = '\n'.join(['GET', url.host, url.path, auth])
-        signature = hmac(
+        signature_bytes = hmac(
             bytes(credentials['secret'], 'utf8'),
             bytes(payload, 'utf8'),
         )
-        request = {
-            'op': 'auth',
-            'Signature': signature.decode(),
-        }
-        if (self.exchange.market_type == 'futures'
-                and self.wsapi_type == 'private'):
-            request['type'] = 'api'
-        return extend(request, params)
+        signature = signature_bytes.decode()
 
-    def on_login_message(self, msg):
-        if msg['op'] == 'auth':
-            if msg['err-code'] == 0:
-                self.logger.info(f'logged in')
-                self.on_logged_in()
+        if self.wsapi_type == 'private':
+            request = extend({
+                'op': 'auth',
+                'Signature': signature,
+            }, params)
+            if self.is_huobidm:
+                request['type'] = 'api'
+        else:   # huobipro private_v2
+            request = deep_extend({
+                'action': 'req', 
+                'ch': 'auth',
+                'params': {
+                    'authType': 'api',
+                    "signature": signature
+                }
+            }, {'params': params})
+
+        return request
+
+    def create_subscribe_task(self):
+        topics = {}
+        for topic in self.topic_set:
+            converted = self.convert_topic(topic)
+            ch, params = self._split_params(converted)
+            topics[ch] = params
+        self.pre_processors.append(self.on_subscribe_message)
+        self.pending_topics = set(topics)
+        return self.awaitables.create_task(
+            self.subscribe(topics), 'subscribe')
+
+    def on_subscribe_message(self, msg):
+        sub_msg = False
+        sub_ok = False
+        topic = None
+
+        if 'subbed' in msg: # huobipro & huobidm market
+            sub_msg = True
+            sub_ok = (msg['status'] == 'ok')
+            topic = msg['subbed']
+        elif msg.get('op') == 'sub':  # huobipro & huobidm private
+            sub_msg = True
+            sub_ok = (msg['err-code'] == 0)
+            topic = msg['topic']
+        elif msg.get('action') == 'sub': # huobipro private_v2
+            sub_msg = True
+            sub_ok = (msg['code'] == 200)
+            topic = msg['ch']
+
+        if sub_msg:
+            if sub_ok:
+                self.logger.info(f'{topic} subscribed')
+                self.on_subscribed(topic)
+                raise StopIteration
             else:
-                err_msg = msg['err-msg']
-                raise RuntimeError(f'login failed: {err_msg}')
-            raise StopIteration
-        else:
-            return msg
+                raise RuntimeError(f'subscribe failed: {msg}')
+        return msg
 
-    def subscribe_commands(self, topic_set):
+    def subscribe_commands(self, topics):
         commands = []
-        for topic in topic_set:
+        for ch, params in topics.items():
             if self.wsapi_type == 'private':
-                request = {'op': 'sub', 'topic': topic}
+                request = {'op': 'sub', 'topic': ch}
+            elif self.wsapi_type == 'private_v2':
+                request = {'action': 'sub', 'ch': ch}
             else:
-                request = {'sub': topic}
-                if 'depth' in topic and topic.endswith('.high_freq'):
-                    request['data_type'] = 'incremental'
+                request = {'sub': ch}
+            request.update(params)
+            print('request', request)
             commands.append(request)
         return commands
 
-    def on_subscribe_message(self, msg):
-        ok = False
-        if 'status' in msg:  # market feed
-            if msg['status'] == 'ok':
-                ok = True
-                topic = msg['subbed']
-            else:
-                err_msg = msg['err-msg']
-        elif msg.get('op') == 'sub':  # private feed
-            if msg['err-code'] == 0:
-                ok = True
-                topic = msg['topic']
-            else:
-                err_msg = msg['err-msg']
-        else:
-            return msg
-
-        if ok:
-            self.logger.info(f'{topic} subscribed')
-            self.on_subscribed(topic)
-            raise StopIteration
-        else:
-            raise RuntimeError(f'subscribe failed: {err_msg}')
+    @staticmethod
+    def _split_params(topic):
+        ch, *params_string = topic.split('?', maxsplit=1)
+        params = parse_qs(params_string[0]) if params_string else {}
+        params = {k: lst[0] for k, lst in params.items()}
+        return ch, params
 
     def decode(self, data):
-        msg = gzip.decompress(data).decode()
+        # private_v2 return str not bytes
+        if isinstance(data, bytes):
+            msg = gzip.decompress(data).decode()
+        else:
+            msg = data
         return json.loads(msg)
 
 
