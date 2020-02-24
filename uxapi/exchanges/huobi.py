@@ -568,7 +568,6 @@ class HuobiWSHandler(WSHandler):
             else:
                 request = {'sub': ch}
             request.update(params)
-            print('request', request)
             commands.append(request)
         return commands
 
