@@ -222,7 +222,10 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
         raise StopIteration
 
     def on_snapshot(self, snapshot):
-        self.snapshot = snapshot
+        self.snapshot = {
+            'ch': snapshot['rep'],
+            'tick': snapshot['data'],
+        }
         self.prices = {
             'asks': [item[0] for item in snapshot['data']['asks']],
             'bids': [-item[0] for item in snapshot['data']['bids']]
@@ -232,15 +235,15 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
         self.cache = None
 
     def merge(self, patch):
-        self.snapshot['ts'] = patch['ts']
-        snapshot_data = self.snapshot['data']
+        snapshot_tick = self.snapshot['tick']
         patch_tick = patch['tick']
-        if snapshot_data['seqNum'] != patch_tick['prevSeqNum']:
+        if snapshot_tick['seqNum'] != patch_tick['prevSeqNum']:
             raise RuntimeError('seqNum error')
-        snapshot_data['seqNum'] = patch_tick['seqNum']
-        self.merge_asks_bids(snapshot_data['asks'], patch_tick['asks'],
+        snapshot_tick['seqNum'] = patch_tick['seqNum']
+        snapshot_tick['ts'] = patch['ts']
+        self.merge_asks_bids(snapshot_tick['asks'], patch_tick['asks'],
                              self.prices['asks'], False)
-        self.merge_asks_bids(snapshot_data['bids'], patch_tick['bids'],
+        self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
                              self.prices['bids'], True)
 
     def start_wsreq(self):
