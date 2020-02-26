@@ -57,7 +57,7 @@ class Binance(UXPatch, ccxt.binance):
                     'orderbook': '{symbol}@depth{level}',
                     'ohlcv': '{symbol}@kline_{period}',
                     'aggTrade': '{symbol}@aggTrade',
-                    'markPrice': '{symbol}@markPrice',
+                    'markPrice': '{symbol}@markPrice{speed}',
                     'miniTicker': '{symbol}@miniTicker',
                     'ticker': '{symbol}@ticker',
                     'quote': '{symbol}@bookTicker',
@@ -131,6 +131,14 @@ class Binance(UXPatch, ccxt.binance):
         elif maintype == 'ohlcv':
             period = self.timeframes[subtypes[0]]
             return template.format(symbol=symbol, period=period)
+        elif maintype == 'markPrice':
+            if not subtypes:
+                speed = ''
+            elif subtypes[0] == '1s':
+                speed = '@1s'
+            else:
+                speed = ''
+            return template.format(symbol=symbol, speed=speed)
         else:
             return template.format(symbol=symbol)
 
