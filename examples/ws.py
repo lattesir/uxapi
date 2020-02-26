@@ -82,7 +82,7 @@ binance.swap.ohlcv:
 binance.swap.markPrice:
     exchange_id: binance
     market_type: swap
-    datatype: markPrice
+    datatype: markPrice.1s
     extrainfo: USDT/BTC
 
 binance.swap.private:

@@ -58,6 +58,7 @@ class Binance(UXPatch, ccxt.binance):
                     'ohlcv': '{symbol}@kline_{period}',
                     'aggTrade': '{symbol}@aggTrade',
                     'markPrice': '{symbol}@markPrice{speed}',
+                    '!markPrice': '!markPrice@arr@{speed}',
                     'miniTicker': '{symbol}@miniTicker',
                     'ticker': '{symbol}@ticker',
                     'quote': '{symbol}@bookTicker',
@@ -114,11 +115,11 @@ class Binance(UXPatch, ccxt.binance):
         wsapi_type = self.wsapi_type(uxtopic)
         template = self.wsapi[wsapi_type][maintype]
 
-        symbol = None
+        params = {}
         if uxtopic.extrainfo:
             uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                                 uxtopic.extrainfo)
-            symbol = self.market_id(uxsymbol).lower()
+            params['symbol'] = self.market_id(uxsymbol).lower()
 
         if maintype == 'orderbook':
             if not subtypes:
@@ -127,20 +128,18 @@ class Binance(UXPatch, ccxt.binance):
                 level = ''
             else:
                 level = subtypes[0]
-            return template.format(symbol=symbol, level=level)
+            params['level'] = level
         elif maintype == 'ohlcv':
             period = self.timeframes[subtypes[0]]
-            return template.format(symbol=symbol, period=period)
-        elif maintype == 'markPrice':
-            if not subtypes:
-                speed = ''
-            elif subtypes[0] == '1s':
+            params['period'] = period
+        elif maintype in ['markPrice', '!markPrice']:
+            if subtypes and subtypes[0] == '1s':
                 speed = '@1s'
             else:
                 speed = ''
-            return template.format(symbol=symbol, speed=speed)
-        else:
-            return template.format(symbol=symbol)
+            params['speed'] = speed
+
+        return template.format(**params)
 
 
 class BinanceWSHandler(WSHandler):
