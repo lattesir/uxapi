@@ -1,5 +1,6 @@
 import json
 import bisect
+import asyncio
 
 import ccxt
 from yarl import URL
@@ -146,6 +147,7 @@ class BinanceWSHandler(WSHandler):
     def __init__(self, exchange, wsurl, topic_set, wsapi_type):
         super().__init__(exchange, wsurl, topic_set)
         self.wsapi_type = wsapi_type
+        self.listen_key = None
 
     async def connect(self):
         if not self.session:
@@ -153,8 +155,9 @@ class BinanceWSHandler(WSHandler):
             self.own_session = True
 
         if self.login_required:
-            listen_key = await self.fetch_listen_key()
-            wsurl = URL(f'{self.wsurl}/{listen_key}')
+            result = await self.request_listen_key('POST')
+            self.listen_key = result['listenKey']
+            wsurl = URL(f'{self.wsurl}/{self.listen_key}')
         else:
             topic_set = [self.convert_topic(topic) for topic in self.topic_set]
             query = {'streams': '/'.join(topic_set)}
@@ -162,7 +165,7 @@ class BinanceWSHandler(WSHandler):
         ws = await self.session.ws_connect(str(wsurl))
         return ws
 
-    async def fetch_listen_key(self):
+    async def request_listen_key(self, method, params=None):
         if self.wsapi_type == 'private':
             url = 'https://api.binance.com/api/v3/userDataStream'
         elif self.wsapi_type == 'fprivate':
@@ -171,18 +174,32 @@ class BinanceWSHandler(WSHandler):
             raise RuntimeError('invalid wsapi_type')
         credentials = self.get_credentials()
         headers = {'X-MBX-APIKEY': credentials['apiKey']}
-        async with self.session.post(url, headers=headers) as resp:
+        async with self.session.request(method, url,
+                params=params, headers=headers) as resp:
             result = await resp.json()
-        if 'listenKey' not in result:
-            raise RuntimeError(result)
-        return result['listenKey']
+        return result
 
     @property
     def login_required(self):
         return self.wsapi_type in ['private', 'fprivate']
 
     def prepare(self):
-        pass
+        if self.login_required:
+            self.awaitables.create_task(self.keepalive(), 'keepalive')
+    
+    async def keepalive(self):
+        interval = 20 * 60
+        while True:
+            await asyncio.sleep(interval)
+            params = None
+            if self.wsapi_type == 'private':
+                params = {'listenKey': self.listen_key}
+            try:
+                await self.request_listen_key('PUT', params)
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                self.logger.exception('request listen key failed')
 
     def decode(self, data):
         return json.loads(data)

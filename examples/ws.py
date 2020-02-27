@@ -261,6 +261,12 @@ huobi.futures.myorder:
     datatype: myorder
     extrainfo: BTC
 
+huobi.futures.accounts:
+    exchange_id: huobi
+    market_type: futures
+    datatype: accounts
+    extrainfo: BTC
+
 #############
 # Okex Spot
 #############
