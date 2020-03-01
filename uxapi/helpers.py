@@ -9,7 +9,7 @@ from operator import itemgetter
 import pendulum
 
 
-def current_timstamp():
+def current_timestamp():
     return int(time.time()) * 1000
 
 
