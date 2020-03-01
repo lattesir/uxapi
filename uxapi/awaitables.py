@@ -1,3 +1,4 @@
+import functools
 import asyncio
 from typing import NamedTuple, Optional
 
@@ -115,4 +116,4 @@ def run_in_executor(func, executor=None, name=None):
             functools.partial(func, *args, **kwargs),
             executor=executor,
             name=name)
-    return func
+    return wrapper

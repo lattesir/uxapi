@@ -5,7 +5,6 @@ import hmac as _hmac
 import base64
 import collections
 import itertools
-import functools
 from operator import itemgetter
 import pendulum
 
