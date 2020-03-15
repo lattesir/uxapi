@@ -11,7 +11,7 @@ from uxapi import UXPatch
 from uxapi import Session
 from uxapi import WSHandler
 from uxapi import Awaitables
-from uxapi.helpers import deep_extend
+from uxapi.helpers import deep_extend, is_sorted
 
 
 @register
@@ -240,6 +240,8 @@ class BinanceOrderBookMerger:
             'asks': [float(item[0]) for item in snapshot['asks']],
             'bids': [-float(item[0]) for item in snapshot['bids']]
         }
+        assert is_sorted(self.prices['asks'])
+        assert is_sorted(self.prices['bids'])
         for patch in self.cache:
             self.merge(patch)
         self.cache = None

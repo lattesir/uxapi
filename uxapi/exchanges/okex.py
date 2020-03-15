@@ -153,7 +153,12 @@ class Okex(UXPatch, ccxt.okex3):
         template = self.wsapi[self.market_type][maintype]
         
         if maintype == 'account':
-            return template.format(currency=uxtopic.extrainfo)
+            if self.market_type == 'swap':
+                uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
+                                uxtopic.extrainfo)
+                return template.format(symbol=self.convert_symbol(uxsymbol))
+            else:
+                return template.format(currency=uxtopic.extrainfo)
         elif maintype == 'instruments':
             return template
         else:

@@ -1,5 +1,6 @@
 import os
 import asyncio
+import reprlib
 import argparse
 
 import yaml
@@ -323,6 +324,12 @@ okex.futures.ticker:
     datatype: ticker
     extrainfo: BTC/USD.CQ
 
+okex.futures.account:
+    exchange_id: okex
+    market_type: futures
+    datatype: account
+    extrainfo: BTC
+
 okex.futures.position:
     exchange_id: okex
     market_type: futures
@@ -363,6 +370,12 @@ okex.swap.trade:
     datatype: trade
     extrainfo: BTC/USD
 
+okex.swap.account:
+    exchange_id: okex
+    market_type: swap
+    datatype: account
+    extrainfo: BTC/USD
+
 okex.swap.myorder:
     exchange_id: okex
     market_type: swap
@@ -378,7 +391,7 @@ class FullOrderBook:
     def __call__(self, msg):
         try:
             msg = self.merger(msg)
-            print(msg)
+            print(reprlib.repr(msg))
         except StopIteration:
             pass
 
