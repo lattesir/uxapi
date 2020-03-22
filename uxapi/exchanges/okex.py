@@ -4,6 +4,7 @@ import time
 import asyncio
 import bisect
 from itertools import zip_longest, chain
+from decimal import Decimal
 import binascii
 
 import ccxt
@@ -105,16 +106,19 @@ class Okex(UXPatch, ccxt.okex3):
                     market['deliveryTime'] = delivery_time.to_iso8601_string()
                 else:
                     market['deliveryTime'] = None
+                if market['precision']['amount'] is None:
+                    increment = market['info']['trade_increment']
+                    amount_precision = -Decimal(increment).adjusted()
+                    market['precision']['amount'] = amount_precision
         return markets
 
     def _create_order(self, uxsymbol, type, side, amount, price, params):
-        if uxsymbol.market_type in ('futures', 'swap') and type == 'limit':
-            if side == 'buy':
-                type = '1'     # open long
-            elif side == 'sell':
-                type = '2'     # open short
-            else:
-                raise ValueError('invalid side argument')
+        if uxsymbol.market_type in ('futures', 'swap'):
+            amount = self.amount_to_precision(self.convert_symbol(uxsymbol), amount)
+            if type == 'limit':
+                # '1': buy & open long
+                # '2': sell & open short
+                type = '1' if side == 'buy' else '2'
         return super()._create_order(uxsymbol, type, side, amount, price, params)
 
     def order_book_merger(self):
