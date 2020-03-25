@@ -42,7 +42,7 @@ class Binance(UXPatch, ccxt.binance):
 
             'wsapi': {
                 'market': {
-                    'orderbook': '{symbol}@depth{level}',
+                    'orderbook': '{symbol}@depth{level_speed}',
                     'ohlcv': '{symbol}@kline_{period}',
                     'trade': '{symbol}@trade',
                     'aggTrade': '{symbol}@aggTrade',
@@ -55,7 +55,7 @@ class Binance(UXPatch, ccxt.binance):
                 },
                 'private': {'private': 'private'},
                 'fmarket': {
-                    'orderbook': '{symbol}@depth{level}',
+                    'orderbook': '{symbol}@depth{level_speed}',
                     'ohlcv': '{symbol}@kline_{period}',
                     'aggTrade': '{symbol}@aggTrade',
                     'markPrice': '{symbol}@markPrice{speed}',
@@ -124,12 +124,12 @@ class Binance(UXPatch, ccxt.binance):
 
         if maintype == 'orderbook':
             if not subtypes:
-                level = '20@100ms'
+                level_speed = '20@100ms'
             elif subtypes[0] == 'full':
-                level = ''
+                level_speed = '@0ms' if self.market_type == 'swap' else '@100ms'
             else:
-                level = subtypes[0]
-            params['level'] = level
+                level_speed = subtypes[0]
+            params['level_speed'] = level_speed
         elif maintype == 'ohlcv':
             period = self.timeframes[subtypes[0]]
             params['period'] = period

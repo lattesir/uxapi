@@ -25,7 +25,7 @@ from uxapi.helpers import (
 
 
 @register
-class Okex(UXPatch, ccxt.okex3):
+class Okex(UXPatch, ccxt.okex):
     id = 'okex'
     
     def __init__(self, market_type, config=None):

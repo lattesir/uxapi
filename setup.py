@@ -11,7 +11,7 @@ AUTHOR = 'lattesir'
 REQUIRES_PYTHON = '>=3.7.0'
 
 REQUIRED = [
-    'ccxt==1.22.76',
+    'ccxt==1.24.92',
     'aiohttp',
     'pendulum',
 ]

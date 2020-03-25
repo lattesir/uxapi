@@ -74,6 +74,12 @@ binance.swap.orderbook.full:
     datatype: orderbook.full
     extrainfo: USDT/BTC
 
+binance.swap.orderbook.250ms:
+    exchange_id: binance
+    market_type: swap
+    datatype: orderbook.@250ms
+    extrainfo: USDT/BTC
+
 binance.swap.ohlcv:
     exchange_id: binance
     market_type: swap
