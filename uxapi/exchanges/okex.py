@@ -98,6 +98,11 @@ class Okex(UXPatch, ccxt.okex):
             contract_value = self.safe_float(market['info'], 'contract_val')
             if contract_value:
                 market['contractValue'] = contract_value
+            underlying = self.safe_string(market['info'], 'underlying')
+            if underlying and underlying.endswith('-USDT'):
+                quote, base = underlying.split('-')
+                market['base'] = market['baseId'] = base
+                market['quote'] = market['quoteId'] = quote
             if market['type'] == 'futures':
                 delivery_date = self.safe_string(market['info'], 'delivery')
                 if delivery_date:
