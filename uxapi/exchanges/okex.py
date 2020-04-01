@@ -85,6 +85,12 @@ class Okex(UXPatch, ccxt.okex):
                     'price_range': 'swap/price_range:{symbol}',
                     'mark_price': 'swap/mark_price:{symbol}',
                 },
+                'options': {
+                    'ticker': 'option/ticker:{symbol}',
+                    'orderbook': 'option/depth{level}:{symbol}',
+                    'trade': 'option/trade:{symbol}',
+                    'ohlcv': 'option/candle{period_in_sec}s:{symbol}',
+                },
                 'index': {
                     'ticker': 'index/ticker:{symbol}',
                     'ohlcv': 'index/candle{period_in_sec}s:{symbol}',
@@ -153,6 +159,9 @@ class Okex(UXPatch, ccxt.okex):
 
         if uxsymbol.market_type == 'index':
             return f'{uxsymbol.base}-{uxsymbol.quote}'
+
+        if uxsymbol.market_type == 'options':
+            return uxsymbol.name
 
         raise ValueError(f'invalid symbol: {uxsymbol}')
 
