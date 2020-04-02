@@ -19,15 +19,11 @@ class Binance(UXPatch, ccxt.binance):
     id = 'binance'
 
     def __init__(self, market_type, config=None):
-        if market_type not in ['spot', 'swap']:
-            raise ValueError('invalid market_type')
-        if market_type == 'swap':
-            config = deep_extend({
-                'options': {
-                    'defaultType': 'future'
-                },
-            }, config or {})
-        return super().__init__(market_type, config)
+        return super().__init__(market_type, deep_extend({
+            'options': {
+                'defaultType': market_type,
+            }
+        }, config or {}))
 
     def describe(self):
         return self.deep_extend(super().describe(), {

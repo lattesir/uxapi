@@ -16,7 +16,7 @@ from uxapi import WSHandler
 from uxapi import UXPatch
 from uxapi.helpers import (
     hmac,
-    extend,
+    deep_extend,
     all_equal,
     contract_delivery_time,
     to_timestamp,
@@ -29,8 +29,9 @@ class Okex(UXPatch, ccxt.okex):
     id = 'okex'
     
     def __init__(self, market_type, config=None):
-        return super().__init__(market_type, extend({
+        return super().__init__(market_type, deep_extend({
             'options': {
+                'fetchMarkets': [market_type],
                 'defaultType': market_type,
             }
         }, config or {}))
@@ -117,10 +118,6 @@ class Okex(UXPatch, ccxt.okex):
                     market['deliveryTime'] = delivery_time.to_iso8601_string()
                 else:
                     market['deliveryTime'] = None
-                if market['precision']['amount'] is None:
-                    increment = market['info']['trade_increment']
-                    amount_precision = -Decimal(increment).adjusted()
-                    market['precision']['amount'] = amount_precision
         return markets
 
     def _create_order(self, uxsymbol, type, side, amount, price, params):
