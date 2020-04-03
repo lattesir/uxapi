@@ -1,4 +1,5 @@
 import hashlib
+from decimal import Decimal
 
 from ccxt.base.exchange import Exchange
 from ccxt.base.errors import (
@@ -25,7 +26,6 @@ class huobidm(Exchange):
             'hostname': 'api.hbdm.com',
             'has': {
                 'cancelAllOrders': True,
-                'cancelOrders': True,
                 'createMarketOrder': 'emulated',
                 'fetchMyTrades': True,
                 'fetchOHLCV': True,
@@ -58,116 +58,192 @@ class huobidm(Exchange):
                 'doc': 'https://huobiapi.github.io/docs/dm/v1/cn/',
                 'fees': 'https://support.huobi.so/hc/en-us/articles/360000113122',
             },
+
             'api': {
-                'market': {
+                'futures': {
                     'get': [
-                        'depth',  # 获取行情深度数据
-                        'history/kline', # 获取K线数据
-                        'detail/merged', # 获取聚合行情
-                        'trade', # 获取市场最近成交记录
-                        'history/trade', # 批量获取最近的交易记录
+                        'contract_info',                # 获取合约信息
+                        'index',                        # 获取合约指数信息
+                        'price_limit',                  # 获取合约最高限价和最低限价
+                        'open_interest',                # 获取当前可用合约总持仓量
+                        'delivery_price',               # 获取预估交割价
+                        'api_state',                    # 查询系统状态
+                        'market/depth',                 # 获取行情深度数据
+                        'market/history/kline',         # 获取K线数据
+                        'market/detail/merged',         # 获取聚合行情
+                        'market/trade',                 # 获取市场最近成交记录
+                        'market/history/trade',         # 批量获取最近的交易记录
+                        'risk_info',                    # 查询合约风险准备金余额和预估分摊比例
+                        'insurance_fund',               # 查询合约风险准备金余额历史数据
+                        'adjustfactor',                 # 查询平台阶梯调整系数
+                        'his_open_interest',            # 平台持仓量的查询
+                        'elite_account_ratio',          # 精英账户多空持仓对比-账户数
+                        'elite_position_ratio',         # 精英账户多空持仓对比-持仓量
+                        'liquidation_orders',           # 获取强平单
+                        'api_trading_status',           # 获取用户的API指标禁用信息(private)
                     ],
-                },
-                'public': {
-                    'get': [
-                        'contract_info', # 获取合约信息
-                        'index',  # 获取合约指数信息
-                        'price_limit',  # 获取合约最高限价和最低限价
-                        'open_interest',  # 获取当前可用合约总持仓量
-                        'delivery_price',  # 获取预估交割价
-                        'risk_info', # 查询合约风险准备金余额和预估分摊比例
-                        'insurance_fund', # 查询合约风险准备金余额历史数据
-                        'adjustfactor', # 查询平台阶梯调整系数
-                        'his_open_interest', # 平台持仓量的查询
-                        'heartbeat', # 查询系统是否可用
-                    ],
-                },
-                'private': {
+     
                     'post': [
-                        'account_info',  # 获取用户账户信息
-                        'position_info',  # 获取用户持仓信息
-                        'sub_account_list', # 查询母账户下所有子账户资产信息
-                        'sub_account_info', # 查询单个子账户资产信息
-                        'sub_position_info', # 查询单个子账户持仓信息
-                        'financial_record', # 查询用户财务记录
-                        'order_limit', # 查询用户当前的下单量限制
-                        'fee', # 查询用户当前的手续费费率
-                        'transfer_limit', # 查询用户当前的划转限制
-                        'position_limit', # 用户持仓量限制的查询
-                        'futures/transfer', # 币币账户和合约账户间进行资金的划转
+                        'account_info',                 # 获取用户账户信息
+                        'position_info',                # 获取用户持仓信息
+                        'sub_account_list',             # 查询母账户下所有子账户资产信息
+                        'sub_account_info',             # 查询单个子账户资产信息
+                        'sub_position_info',            # 查询单个子账户持仓信息
+                        'financial_record',             # 查询用户财务记录
+                        'order_limit',                  # 查询用户当前的下单量限制
+                        'fee',                          # 查询用户当前的手续费费率
+                        'transfer_limit',               # 查询用户当前的划转限制
+                        'position_limit',               # 用户持仓量限制的查询
+                        'account_position_info',        # 查询用户账户和持仓信息
+                        'master_sub_transfer',          # 母子账户划转
+                        'master_sub_transfer_record',   # 获取母账户下的所有母子账户划转记录
+
+                        'order',                        # 合约下单
+                        'batchorder',                   # 合约批量下单
+                        'cancel',                       # 撤销订单
+                        'cancelall',                    # 全部撤单
+                        'order_info',                   # 获取合约订单信息
+                        'order_detail',                 # 获取订单明细信息
+                        'openorders',                   # 获取合约当前未成交委托
+                        'hisorders',                    # 获取合约历史委托
+                        'matchresults',                 # 获取历史成交记录
+                        'lightning_close_position',     # 闪电平仓下单
+
+                        'trigger_order',                # 合约计划委托下单
+                        'trigger_cancel',               # 合约计划委托撤单
+                        'trigger_cancelall',            # 合约计划委托全部撤单
+                        'trigger_openorders',           # 获取计划委托当前委托
+                        'trigger_hisorders',            # 获取计划委托历史委托
                     ]
                 },
-                'trade': {
-                    'post': [
-                        'order', # 合约下单
-                        'batchorder', # 合约批量下单
-                        'cancel', # 撤销订单
-                        'cancelall', # 全部撤单
-                        'order_info', # 获取合约订单信息
-                        'order_detail', # 获取订单明细信息
-                        'openorders', # 获取合约当前未成交委托
-                        'hisorders', # 获取合约历史委托
-                        'matchresults', # 获取历史成交记录
-                        'lightning_close_position', # 闪电平仓下单
+
+                'swap': {
+                    'get': [
+                        'contract_info',                # 获取合约信息
+                        'index',                        # 获取合约指数信息
+                        'price_limit',                  # 获取合约最高限价和最低限价
+                        'open_interest',                # 获取当前可用合约总持仓量
+                        'market/depth',                 # 获取行情深度数据
+                        'market/history/kline',         # 获取K线数据
+                        'market/detail/merged',         # 获取聚合行情
+                        'market/trade',                 # 获取市场最近成交记录
+                        'market/history/trade',         # 批量获取最近的交易记录
+                        'risk_info',                    # 查询合约风险准备金余额和预估分摊比例
+                        'insurance_fund',               # 查询合约风险准备金余额历史数据
+                        'adjustfactor',                 # 查询平台阶梯调整系数
+                        'his_open_interest',            # 平台持仓量的查询
+                        'elite_account_ratio',          # 精英账户多空持仓对比-账户数
+                        'elite_position_ratio',         # 精英账户多空持仓对比-持仓量
+                        'api_state',                    # 查询系统状态
+                        'funding_rate',                 # 获取合约的资金费率
+                        'historical_funding_rate',      # 获取合约的历史资金费率
+                        'api_trading_status',           # 获取用户的API指标禁用信息(private)
                     ],
-                }
+
+                    'post': [
+                        'account_info',                 # 获取用户账户信息
+                        'position_info',                # 获取用户持仓信息
+                        'sub_account_list',             # 查询母账户下所有子账户资产信息
+                        'sub_account_info',             # 查询单个子账户资产信息
+                        'sub_position_info',            # 查询单个子账户持仓信息
+                        'financial_record',             # 查询用户财务记录
+                        'order_limit',                  # 查询用户当前的下单量限制
+                        'swap_fee',                     # 查询用户当前的手续费费率
+                        'transfer_limit',               # 查询用户当前的划转限制
+                        'position_limit',               # 用户持仓量限制的查询
+                        'master_sub_transfer',          # 母子账户划转
+                        'master_sub_transfer_record',   # 获取母账户下的所有母子账户划转记录
+
+                        'order',                        # 合约下单
+                        'batchorder',                   # 合约批量下单
+                        'cancel',                       # 撤销订单
+                        'cancelall',                    # 全部撤单
+                        'order_info',                   # 获取合约订单信息
+                        'order_detail',                 # 获取订单明细信息
+                        'openorders',                   # 获取合约当前未成交委托
+                        'hisorders',                    # 获取合约历史委托
+                        'matchresults',                 # 获取历史成交记录
+                        'lightning_close_position',     # 闪电平仓下单
+                        'liquidation_orders',           # 获取强平订单
+                    ],
+                },
+                
+                'index': {
+                    'get': [
+                        'history/index',    # 获取指数K线数据
+                        'history/basis',    # 获取基差数据
+                    ]
+                },
+
+                'general': {
+                    'get': [
+                        'heartbeat',        # 查询系统是否可用
+                    ]
+                },
             },
+
             'fees': {
-                'trading': {
-                    'tierBased': True,
-                    'percentage': True,
-                    'maker': 0.0002,
+                'futures': {
                     'taker': 0.0003,
-                }
+                    'maker': 0.0002,
+                },
+                'swap': {
+                    'taker': 0.0002,
+                    'maker': 0.0004,
+                },
             },
+
             'exceptions': {
-                403: AuthenticationError,   # 无效身份
-                1017: OrderNotFound,        # 查询订单不存在
-                1030: BadRequest,           # 输入错误
-                1031: BadRequest,           # 非法的报单来源
-                1032: DDoSProtection,       # 访问次数超出限制
-                1033: BadRequest,           # 合约周期字段值错误
-                1034: BadRequest,           # 报单价格类型字段值错误
-                1035: BadRequest,           # 报单方向字段值错误
-                1036: BadRequest,           # 报单开平字段值错误
-                1037: BadRequest,           # 杠杆倍数不符合要求
-                1038: BadRequest,           # 报单价格不符合最小变动价
-                1039: BadRequest,           # 报单价格超出限制
-                1040: BadRequest,           # 报单数量不合法
-                1041: BadRequest,           # 报单数量超出限制
-                1042: BadRequest,           # 超出多头持仓限制
-                1043: BadRequest,           # 超出多头持仓限制
-                1044: BadRequest,           # 超出平台持仓限制
-                1045: BadRequest,           # 杠杆倍数与所持有仓位的杠杆不符合
-                1047: InsufficientFunds,    # 可用保证金不足
-                1048: BadRequest,           # 持仓量不足
-                1050: BadRequest,           # 客户报单号重复
-                1051: OrderNotFound,        # 没有可撤订单
-                1052: BadRequest,           # 超出批量数目限制
-                1061: OrderNotFound,        # 订单不存在，无法撤单
-                1062: CancelPending,        # 撤单中，无法重复撤单
-                1065: BadRequest,           # 客户报单号不是整数
-                1066: BadRequest,           # 字段不能为空
-                1067: BadRequest,           # 字段不合法
-                1069: BadRequest,           # 报单价格不合法
-                1071: BadRequest,           # 订单已撤，无法撤单
-                1100: PermissionDenied,     # 用户没有开仓权限
-                1101: PermissionDenied,     # 用户没有平仓权限
-                1102: PermissionDenied,     # 用户没有入金权限
-                1103: PermissionDenied,     # 用户没有出金权限
-                1200: AuthenticationError,  # 登录错误
+                '403': AuthenticationError,   # 无效身份
+                '1017': OrderNotFound,        # 查询订单不存在
+                '1030': BadRequest,           # 输入错误
+                '1031': BadRequest,           # 非法的报单来源
+                '1032': DDoSProtection,       # 访问次数超出限制
+                '1033': BadRequest,           # 合约周期字段值错误
+                '1034': BadRequest,           # 报单价格类型字段值错误
+                '1035': BadRequest,           # 报单方向字段值错误
+                '1036': BadRequest,           # 报单开平字段值错误
+                '1037': BadRequest,           # 杠杆倍数不符合要求
+                '1038': BadRequest,           # 报单价格不符合最小变动价
+                '1039': BadRequest,           # 报单价格超出限制
+                '1040': BadRequest,           # 报单数量不合法
+                '1041': BadRequest,           # 报单数量超出限制
+                '1042': BadRequest,           # 超出多头持仓限制
+                '1043': BadRequest,           # 超出多头持仓限制
+                '1044': BadRequest,           # 超出平台持仓限制
+                '1045': BadRequest,           # 杠杆倍数与所持有仓位的杠杆不符合
+                '1047': InsufficientFunds,    # 可用保证金不足
+                '1048': BadRequest,           # 持仓量不足
+                '1050': BadRequest,           # 客户报单号重复
+                '1051': OrderNotFound,        # 没有可撤订单
+                '1052': BadRequest,           # 超出批量数目限制
+                '1061': OrderNotFound,        # 订单不存在，无法撤单
+                '1062': CancelPending,        # 撤单中，无法重复撤单
+                '1065': BadRequest,           # 客户报单号不是整数
+                '1066': BadRequest,           # 字段不能为空
+                '1067': BadRequest,           # 字段不合法
+                '1069': BadRequest,           # 报单价格不合法
+                '1071': BadRequest,           # 订单已撤，无法撤单
+                '1100': PermissionDenied,     # 用户没有开仓权限
+                '1101': PermissionDenied,     # 用户没有平仓权限
+                '1102': PermissionDenied,     # 用户没有入金权限
+                '1103': PermissionDenied,     # 用户没有出金权限
+                '1200': AuthenticationError,  # 登录错误
             },
             'options': {
                 'defaultLeverage': 10,
+                'defaultType': 'futures',
             }
         })
 
-    def fetch_markets(self, params=None):
-        params = params or {}
-        response = self.publicGetContractInfo(params)
+    def fetch_markets(self, params={}):
+        defaultType = self.safe_string_2(self.options, 'fetchMarkets', 'defaultType', 'futures')
+        type = self.safe_string(params, 'type', defaultType)
+        method = f'{type}GetContractInfo'
+        response = getattr(self, method)(params)
         markets = self.safe_value(response, 'data')
         if not markets:
-            raise ExchangeError(self.id + ' publicGetContractInfo returned empty response: ' + self.json(markets))
+            raise ExchangeError(self.id + f' {method} returned empty response')
         return [self.parse_market(market) for market in markets]
 
     def parse_market(self, market):
@@ -181,25 +257,29 @@ class huobidm(Exchange):
         #     create_date: "20190823",
         #     contract_status: 1
         # }
-        baseId = market['symbol']
-        quoteId = 'USD'
-        expiration = self.expirations[market['contract_type']]
-        symbol = f'{baseId}_{expiration}'
+        base = baseId = market['symbol']
+        quote = quoteId = 'USD'
+        if 'contract_type' in market:
+            market_type = 'futures'
+            expiration = self.expirations[market['contract_type']]
+            symbol = f'{baseId}_{expiration}'
+        else:
+            market_type = 'swap'
+            symbol = f'{base}-{quote}'
         active = (self.safe_integer(market, 'contract_status') == 1)
-        tick_size = self.safe_float(market, 'price_tick')
-        tick_size_str = self.number_to_string(tick_size)
-        precision = self.precision_from_string(tick_size_str)
+        price_precision = -Decimal(market['price_tick']).adjusted()
         return {
             'id': symbol,
             'symbol': symbol,
-            'base': baseId,
-            'quote': quoteId,
+            'base': base,
+            'quote': quote,
             'baseId': baseId,
             'quoteId': quoteId,
+            'type': market_type,
             'active': active,
             'precision': {
                 'amount': 0,
-                'price': precision,
+                'price': price_precision,
             },
             'limits': {
                 'amount': {
@@ -219,13 +299,14 @@ class huobidm(Exchange):
         }
 
     def fetch_ticker(self, symbol, params=None):
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        request = {
-            'symbol': market['id'],
-        }
-        response = self.marketGetDetailMerged(self.extend(request, params))
+        method = market['type'] + 'GetMarketDetailMerged'
+        if market['type'] == 'futures':
+            request = {'symbol': market['id']}
+        else:
+            request = {'contract_code': market['id']}
+        response = getattr(self, method)(self.extend(request, params or {}))
         return self.parse_ticker(response['tick'], market)
 
     def parse_ticker(self, ticker, market):
@@ -292,14 +373,15 @@ class huobidm(Exchange):
         }
 
     def fetch_order_book(self, symbol, limit=None, params=None):
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        request = {
-            'symbol': market['id'],
-            'type': 'step0',
-        }
-        response = self.marketGetDepth(self.extend(request, params))
+        method = market['type'] + 'GetMarketDepth'
+        if market['type'] == 'futures':
+            request = {'symbol': market['id']}
+        else:
+            request = {'contract_code': market['id']}
+        request['type'] = 'step0'
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "asks": [
         #     [10266.11, 6],
@@ -330,15 +412,18 @@ class huobidm(Exchange):
         
     def fetch_ohlcv(self, symbol, timeframe='1m', since=None,
                     limit=1000, params=None):
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        request = {
-            'symbol': market['id'],
+        method = market['type'] + 'GetMarketHistoryKline'
+        if market['type'] == 'futures':
+            request = {'symbol': market['id']}
+        else:
+            request = {'contract_code': market['id']}
+        request.update({
             'period': self.timeframes[timeframe],
             'size': limit or 1000
-        }
-        response = self.marketGetHistoryKline(self.extend(request, params))
+        })
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "ch": "market.BTC_CQ.kline.1min",
         #   "data": [
@@ -369,15 +454,15 @@ class huobidm(Exchange):
         ]
 
     def fetch_trades(self, symbol, since=None, limit=1000, params=None):
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        request = {
-            'symbol': market['id'],
-        }
-        if limit is not None:
-            request['size'] = limit
-        response = self.marketGetHistoryTrade(self.extend(request, params))
+        method = market['type'] + 'GetMarketHistoryTrade'
+        if market['type'] == 'futures':
+            request = {'symbol': market['id']}
+        else:
+            request = {'contract_code': market['id']}
+        request['size'] = limit or 1000
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "ch": "market.BTC_CQ.trade.detail",
         #   "data": [
@@ -411,19 +496,25 @@ class huobidm(Exchange):
     def fetch_my_trades(self, symbol=None, since=None, limit=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' fetchMyTrades requires a symbol argument')
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        symbol = market['base']
-        request = {
-            'symbol': symbol,
+        method = market['type'] + 'PostMatchresults'
+        if market['type'] == 'futures':
+            request = {
+                'symbol': market['base'],
+                'contract_code': market['info']['contract_code']
+            }
+        else:
+            request = {
+                'contract_code': market['id'],
+            }
+        request.update({
             'trade_type': 0,
             'create_date': 90,
-            'contract_code': market['info']['contract_code'],
             'page_index': 1,
             'page_size': 50
-        }
-        response = self.tradePostMatchresults(self.extend(request, params))
+        })
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {                                               
         #   "data": {                                      
         #     "current_page": 1,                              
@@ -492,23 +583,22 @@ class huobidm(Exchange):
         raise OrderNotFound(f'{self.id} order {id} not found')
 
     def fetch_orders(self, symbol=None, since=None, limit=None, params=None):
-        params = params or {}
-        return self.fetch_orders_by_ids(None, symbol, since, limit, params)
+        return self.fetch_orders_by_ids(None, symbol, since, limit, params or {})
 
     def fetch_orders_by_ids(self, ids, symbol, since=None, 
                             limit=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' fetchOpenOrders requires a symbol argument')
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        symbol = market['base']
-        request = {
-            'symbol': symbol,
-        }
+        method = market['type'] + 'PostOrderInfo'
+        if market['type'] == 'futures':
+            request = {'symbol': market['base']}
+        else:
+            request = {'contract_code': market['id']}
         if ids:
             request['order_id'] = ','.join(ids)
-        response = self.tradePostOrderInfo(self.extend(request, params))
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data": [
@@ -545,16 +635,18 @@ class huobidm(Exchange):
                           limit=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' fetchOpenOrders requires a symbol argument')
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        symbol = market['base']
+        method = market['type'] + 'PostOpenorders'
+        if market['type'] == 'futures':
+            request = {'symbol': market['base']}
+        else:
+            request = {'contract_code': market['id']}
         request = {
-            'symbol': symbol,
             'page_index': 1,
             'page_size': 50,
         }
-        response = self.tradePostOpenorders(self.extend(request, params))
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data":{
@@ -597,16 +689,13 @@ class huobidm(Exchange):
         timestamp = self.safe_integer(order, 'created_at')
         status = self.safe_string(order, 'status')
         status = self.parse_order_status(status)
-
         currency = self.safe_string(order, 'symbol')
-        contract_type = self.safe_string(order, 'contract_type')
-        if contract_type == 'this_week':
-            symbol = currency +  '_CW'
-        elif contract_type == 'next_week':
-            symbol = currency + '_NW'
-        elif contract_type == 'quarter':
-            symbol = currency + '_CQ'
-
+        if market['type'] == 'futures':
+            contract_type = self.safe_string(order, 'contract_type')
+            expiration = self.expirations[contract_type]
+            symbol = f'{currency}_{expiration}'
+        else:
+            symbol = self.safe_string(order, 'contract_code')
         side = self.safe_string(order, 'direction')
         price = self.safe_float(order, 'price')
         average = self.safe_float(order, 'trade_avg_price')
@@ -622,7 +711,6 @@ class huobidm(Exchange):
                 'cost': -fee_cost,
                 'currency': currency,
             }
-
         return {
             'id': self.safe_string(order, 'order_id'),
             'timestamp': timestamp,
@@ -656,26 +744,33 @@ class huobidm(Exchange):
         return self.safe_string(statuses, status, status)
 
     def create_order(self, symbol, type, side, amount, price=None, params=None):
-        params = params or {}
         self.load_markets()
         market = self.market(symbol)
-        default_leverage = self.options['defaultLeverage']
-        lever_rate = params.get('lever_rate', default_leverage)
+        method = market['type'] + 'PostOrder'
+        params = params or {}
+        lever_rate = params.get('lever_rate', self.options['defaultLeverage'])
         if type == 'market':
             type = 'optimal_20'
-        request = {
-            'symbol': market['base'],
-            'contract_type': market['info']['contract_type'],
-            'contract_code': market['info']['contract_code'],
+        if market['type'] == 'futures':
+            request = {
+                'symbol': market['base'],
+                'contract_type': market['info']['contract_type'],
+                'contract_code': market['info']['contract_code'],
+            }
+        else:
+            request = {
+                'contract_code': market['id']
+            }
+        request.update({
             'volume': self.amount_to_precision(symbol, amount),
             'direction': side,
             'offset': 'open',
             'lever_rate': lever_rate,
             'order_price_type': type
-        }
+        })
         if type in ['limit', 'post_only']:
             request['price'] = self.price_to_precision(symbol, price)
-        response = self.tradePostOrder(self.extend(request, params))
+        response = getattr(self, method)(self.extend(request, params))
         # {
         #   "status": "ok",
         #   "data": {
@@ -709,22 +804,20 @@ class huobidm(Exchange):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelOrder requires a symbol argument')
         ids = [id] if id else None
-        return self._do_cancel_orders(ids, symbol, params)
+        return self.cancel_order_by_ids(ids, symbol, params)
 
-    def _do_cancel_orders(self, ids, symbol=None, params=None):
+    def cancel_order_by_ids(self, ids, symbol=None, params=None):
         if symbol is None:
-            raise ArgumentsRequired(self.id + ' cancelOrders requires a symbol argument')
-        params = params or {}
-        market = None
-        if symbol in self.markets:
-            market = self.markets[symbol]
-            symbol = market['base']
-        request = {
-            'symbol': symbol,
-        }
+            raise ArgumentsRequired(self.id + ' cancelOrderByIds requires a symbol argument')
+        market = self.market(symbol)
+        method = market['type'] + 'PostCancel'
+        if market['type'] == 'futures':
+            request = {'symbol': market['base']}
+        else:
+            request = {'contract_code': market['id']}
         if ids:
             request['order_id'] = ','.join(ids)
-        response = self.tradePostCancel(self.extend(request, params))
+        response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data": {
@@ -749,28 +842,30 @@ class huobidm(Exchange):
         # }
         return  response
 
-    cancel_orders = _do_cancel_orders
-
     def cancel_all_orders(self, symbol=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelAllOrders requires a symbol argument')
-        params = params or {}
-        market = None
-        if symbol in self.markets:
-            market = self.markets[symbol]
-            symbol = market['base']
-        request = {
-            'symbol': symbol
-        }
-        if market:
-            contract_type = market['info']['contract_type']
-            request['contract_type'] = contract_type
-        return self.tradePostCancelall(self.extend(request, params))
+        market = self.market(symbol)
+        method = market['type'] + 'PostCancelall'
+        if market['type'] == 'futures':
+            request = {
+                'symbol': market['base'],
+                'contract_type': market['info']['contract_type']
+            }
+        else:
+            request = {
+                'contract_code': market['id']
+            }
+        return getattr(self, method)(self.extend(request, params or {}))
 
     def fetch_balance(self, params=None):
-        params = params or {}
         self.load_markets()
-        response = self.privatePostAccountInfo(params)
+        defaultType = self.safe_string_2(self.options, 'fetchBalance', 'defaultType')
+        type = self.safe_string(params, 'type', defaultType)
+        if type is None:
+            raise ArgumentsRequired(self.id + " fetchBalance requires a type parameter(one of 'futures', 'swap')")
+        method = f'{type}PostAccountInfo'
+        response = getattr(self, method)(params or {})
         # {
         #   "status": "ok",
         #   "data": [
@@ -814,16 +909,21 @@ class huobidm(Exchange):
         return balance
 
     def fetch_status(self, params=None):
-        params = params or {}
-        response = self.publicGetHeartbeat(params)
+        response = self.generalGetHeartbeat(params or {})
         # {
-        #   "status": "ok",
-        #   "data": {
-        #     "heartbeat": 1
-        #   },
-        #   "ts": 1557714418033
+        #    "status":"ok",
+        #    "data":{
+        #       "heartbeat":1,
+        #       "estimated_recovery_time":null,
+        #       "swap_heartbeat":1,
+        #       "swap_estimated_recovery_time":null
+        #    },
+        #    "ts":1557714418033
         # }
-        heartbeat = self.safe_integer(response['data'], 'heartbeat')
+        defaultType = self.safe_string_2(self.options, 'fetchStatus', 'defaultType')
+        type = self.safe_string(params, 'type', defaultType)
+        key = 'swap_heartbeat' if type == 'swap' else 'heartbeat'
+        heartbeat = self.safe_integer(response['data'], key)
         if heartbeat == 1:
             status = 'ok'
         else:
@@ -835,20 +935,27 @@ class huobidm(Exchange):
         return self.status
 
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
-        if path == 'heartbeat':
-            url = f'/{path}'
-        elif path == 'futures/transfer':
-            url = f'/{self.version}/{path}'
-        elif path == 'lightning_close_position':
-            url = f'/api/{self.version}/{path}'
-        elif api == 'market':
-            url = f'/market/{path}'
+        if api == 'futures':
+            if path.startswith('market/'):
+                prefix = f'api/{self.version}/'
+            else:
+                prefix = f'api/{self.version}/contract_'
+        elif api == 'swap':
+            if path.startswith('market/'):
+                prefix = 'swap-ex/'
+            else:
+                prefix = f'swap-api/{self.version}/swap_'
+        elif api == 'index':
+            prefix = f'api/{self.version}/index/market/'
         else:
-            url = f'/api/{self.version}/contract_{path}'
-
+            assert api == 'general' and path == 'heartbeat'
+            url = self.urls['heartbeat'] + '/heartbeat'
+            return {'url': url, 'method': method, 'body': body, 'headers': headers}
+            
+        url = f'/{prefix}{path}'
         url = self.implode_params(url, params)
         query = self.omit(params, self.extract_params(path))
-        if api in ['private', 'trade']:
+        if method == 'POST' or path == 'api_trading_status':
             self.check_required_credentials()
             timestamp = self.ymdhms(self.milliseconds(), 'T')
             request = self.keysort(self.extend({
@@ -870,28 +977,25 @@ class huobidm(Exchange):
         else:
             if query:
                 url += '?' + self.urlencode(query)
-
-        if path == 'heartbeat':
-            url = self.urls['heartbeat'] + url
-        else:
-            url = self.urls['api'] + url
-
+        url = self.urls['api'] + url
         return {'url': url, 'method': method, 'body': body, 'headers': headers}
 
     def handle_errors(self, httpCode, reason, url, method, headers, body,
                       response, requestHeaders, requestBody):
         if response is None:
-            return
-        # {
-        #   "status": "error",
-        #   "err_code": 1017,
-        #   "err_msg": "Order doesnt exist.",
-        #   "ts": 1568194001844
-        # }
-        status = self.safe_string(response, 'status')
-        if status == 'error':
-            code = self.safe_integer(response, 'err_code')
-            feedback = self.id + ' ' + self.json(response)
-            if code in self.exceptions:
-                raise self.exceptions[code](feedback)
-            raise ExchangeError(feedback)
+            return  # fallback to default error handler
+        if 'status' in response:
+            # {
+            #    "status":"error",
+            #    "err-code":"order-limitorder-amount-min-error",
+            #    "err-msg":"limit order amount error, min: `0.001`",
+            #    "data":null
+            # }
+            status = self.safe_string(response, 'status')
+            if status == 'error':
+                code = self.safe_string(response, 'err-code')
+                feedback = self.id + ' ' + body
+                self.throw_exactly_matched_exception(self.exceptions['exact'], code, feedback)
+                message = self.safe_string(response, 'err-msg')
+                self.throw_exactly_matched_exception(self.exceptions['exact'], message, feedback)
+                raise ExchangeError(feedback)

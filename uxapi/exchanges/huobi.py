@@ -42,14 +42,6 @@ class Huobi:
     def __getattr__(self, attr):
         return getattr(self._exchange, attr)
 
-    def wshandler(self, topic_set):
-        wsapi_types = {self.wsapi_type(topic) for topic in topic_set}
-        if len(wsapi_types) > 1:
-            raise ValueError('invalid topics')
-        wsapi_type = wsapi_types.pop()
-        wsurl = self.urls['wsapi'][wsapi_type]
-        return HuobiWSHandler(self, wsurl, topic_set, wsapi_type)
-
 
 class Huobipro(UXPatch, huobipro):
     id = 'huobi'
@@ -153,6 +145,14 @@ class Huobipro(UXPatch, huobipro):
         if maintype == 'ohlcv':
             params['period'] = self.timeframes[subtypes[0]]
         return template.format(**params)
+
+    def wshandler(self, topic_set):
+        wsapi_types = {self.wsapi_type(topic) for topic in topic_set}
+        if len(wsapi_types) > 1:
+            raise ValueError('invalid topics')
+        wsapi_type = wsapi_types.pop()
+        wsurl = self.urls['wsapi'][wsapi_type]
+        return HuobiWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
         for type in self.wsapi:
@@ -266,6 +266,16 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
 class Huobidm(UXPatch, huobidm):
     id = 'huobi'
 
+    def __init__(self, market_type, config=None):
+        if market_type == 'index':
+            market_type = 'futures'
+        return super().__init__(market_type, extend({
+            'options': {
+                'fetchMarkets': market_type,
+                'defaultType': market_type,
+            }
+        }, config or {}))
+
     def describe(self):
         return self.deep_extend(super().describe(), {
             'deliveryHourUTC': 8,
@@ -273,14 +283,20 @@ class Huobidm(UXPatch, huobidm):
             'has': {
                 'fetchOrders': True,
                 'fetchOpenOrders': True,
-                'cancelOrders': True,
                 'cancelAllOrders': True,
             },
 
             'urls': {
                 'wsapi': {
-                    'market': 'wss://www.hbdm.com/ws',
-                    'private': 'wss://api.hbdm.com/notification',
+                    'market': {
+                        'futures': 'wss://api.hbdm.com/ws',
+                        'swap': 'wss://api.hbdm.com/swap-ws'
+                    },
+                    'private': {
+                        'futures': 'wss://api.hbdm.com/notification',
+                        'swap': 'wss://api.hbdm.com/swap-notification'
+                    },
+                    'index': 'wss://api.hbdm.com/ws_index',
                 },
             },
 
@@ -290,12 +306,18 @@ class Huobidm(UXPatch, huobidm):
                     'orderbook': 'market.{symbol}.depth.{level}',
                     'high_freq': 'market.{symbol}.depth.size_{level}.high_freq?data_type={data_type}',
                     'ohlcv': 'market.{symbol}.kline.{period}',
-                    'trade': 'market.{symbol}.trade.detail',
+                    'trade': 'market.{symbol}.trade.detail',   
                 },
                 'private': {
                     'myorder': 'orders.{currency}',
                     'position': 'positions.{currency}',
                     'accounts': 'accounts.{currency}',
+                    'liquidationOrders': 'liquidationOrders.{currency}',
+                    'funding_rate': 'funding_rate.{currency}',
+                },
+                'index': {
+                    'ohlcv': 'market.{symbol}.index.{period}',
+                    'basis': 'market.{symbol}.basis.{period}.{basis_price_type}'
                 }
             },
         })
@@ -306,31 +328,40 @@ class Huobidm(UXPatch, huobidm):
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
         for market in markets:
-            market['type'] = 'futures'
             contract_value = self.safe_float(market['info'], 'contract_size')
             market['contractValue'] = contract_value
-            delivery_date = self.safe_string(market['info'], 'delivery_date')
-            if delivery_date:
-                delivery_time = pendulum.from_format(delivery_date, 'YYYYMMDD')
-                delivery_time = delivery_time.add(hours=self.deliveryHourUTC)
-                market['deliveryTime'] = delivery_time.to_iso8601_string()
-            else:
-                market['deliveryTime'] = None
+            if market['type'] == 'futures':
+                delivery_date = self.safe_string(market['info'], 'delivery_date')
+                if delivery_date:
+                    delivery_time = pendulum.from_format(delivery_date, 'YYYYMMDD')
+                    delivery_time = delivery_time.add(hours=self.deliveryHourUTC)
+                    market['deliveryTime'] = delivery_time.to_iso8601_string()
+                else:
+                    market['deliveryTime'] = None
         return markets
 
     def convert_symbol(self, uxsymbol):
-        return f'{uxsymbol.base}_{uxsymbol.contract_expiration}'
+        if uxsymbol.market_type == 'futures':
+            return f'{uxsymbol.base}_{uxsymbol.contract_expiration}'
+        else:
+            return f'{uxsymbol.base}-{uxsymbol.quote}'
 
     def convert_topic(self, uxtopic):
+        wsapi_type = self.wsapi_type(uxtopic)
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
         params = {}
-        if maintype in self.wsapi['market']:
+        if wsapi_type == 'index':
+            params['symbol'] = uxtopic.extrainfo
+        elif wsapi_type == 'market':
             uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                                 uxtopic.extrainfo)
             params['symbol'] = self.market_id(uxsymbol)
         else:  # 'private'
-            params['currency'] = uxtopic.extrainfo.lower()
+            if uxtopic.market_type == 'futures':
+                params['currency'] = uxtopic.extrainfo.lower()
+            else:
+                params['currency'] = uxtopic.extrainfo + '-USD'
 
         if maintype == 'orderbook':
             if not subtypes:
@@ -347,13 +378,27 @@ class Huobidm(UXPatch, huobidm):
             params['data_type'] = subtypes[1]
         elif maintype == 'ohlcv':
             params['period'] = self.timeframes[subtypes[0]]
-
-        wsapi_type = self.wsapi_type(uxtopic)
+        elif maintype == 'basis':
+            params['period'] = self.timeframes[subtypes[0]]
+            params['basis_price_type'] = subtypes[1]
         template = self.wsapi[wsapi_type][maintype]
         return template.format(**params)
 
+    def wshandler(self, topic_set):
+        wsapi_types = {self.wsapi_type(topic) for topic in topic_set}
+        if len(wsapi_types) > 1:
+            raise ValueError('invalid topics')
+        wsapi_type = wsapi_types.pop()
+        if wsapi_type == 'index':
+            wsurl = self.urls['wsapi'][wsapi_type]
+        else:
+            wsurl = self.urls['wsapi'][wsapi_type][self.market_type]
+        return HuobiWSHandler(self, wsurl, topic_set, wsapi_type)
+
     def wsapi_type(self, uxtopic):
-        for type in self.wsapi:
+        if uxtopic.market_type == 'index':
+            return 'index'
+        for type in ('market', 'private'):
             if uxtopic.maintype in self.wsapi[type]:
                 return type
         raise ValueError('invalid topic')

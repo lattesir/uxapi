@@ -274,6 +274,51 @@ huobi.futures.accounts:
     datatype: accounts
     extrainfo: BTC
 
+################
+# Huobi Swap
+################
+
+huobi.swap.orderbook:
+    exchange_id: huobi
+    market_type: swap
+    datatype: orderbook
+    extrainfo: BTC/USD
+
+huobi.swap.orderbook.full:
+    exchange_id: huobi
+    market_type: swap
+    datatype: orderbook.full
+    extrainfo: BTC/USD
+
+huobi.swap.myorder:
+    exchange_id: huobi
+    market_type: swap
+    datatype: myorder
+    extrainfo: BTC
+
+huobi.swap.funding_rate:
+    exchange_id: huobi
+    market_type: swap
+    datatype: funding_rate
+    extrainfo: BTC
+
+
+################
+# Huobi Index
+################
+
+huobi.index.ohlcv:
+    exchange_id: huobi
+    market_type: index
+    datatype: ohlcv.1m
+    extrainfo: BTC-USD
+
+huobi.index.basis:
+    exchange_id: huobi
+    market_type: index
+    datatype: basis.1m.open
+    extrainfo: BTC_CW
+
 #############
 # Okex Spot
 #############
