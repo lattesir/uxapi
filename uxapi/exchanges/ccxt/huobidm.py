@@ -148,7 +148,7 @@ class huobidm(Exchange):
                         'sub_position_info',            # 查询单个子账户持仓信息
                         'financial_record',             # 查询用户财务记录
                         'order_limit',                  # 查询用户当前的下单量限制
-                        'swap_fee',                     # 查询用户当前的手续费费率
+                        'fee',                          # 查询用户当前的手续费费率
                         'transfer_limit',               # 查询用户当前的划转限制
                         'position_limit',               # 用户持仓量限制的查询
                         'master_sub_transfer',          # 母子账户划转
@@ -642,10 +642,10 @@ class huobidm(Exchange):
             request = {'symbol': market['base']}
         else:
             request = {'contract_code': market['id']}
-        request = {
+        request.update({
             'page_index': 1,
             'page_size': 50,
-        }
+        })
         response = getattr(self, method)(self.extend(request, params or {}))
         # {
         #   "status": "ok",
