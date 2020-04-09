@@ -937,7 +937,7 @@ class huobidm(Exchange):
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
         if api == 'futures':
             if path.startswith('market/'):
-                prefix = f'api/{self.version}/'
+                prefix = f'/'
             else:
                 prefix = f'api/{self.version}/contract_'
         elif api == 'swap':
