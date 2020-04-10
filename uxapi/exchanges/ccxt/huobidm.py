@@ -194,41 +194,43 @@ class huobidm(Exchange):
             },
 
             'exceptions': {
-                '403': AuthenticationError,   # 无效身份
-                '1017': OrderNotFound,        # 查询订单不存在
-                '1030': BadRequest,           # 输入错误
-                '1031': BadRequest,           # 非法的报单来源
-                '1032': DDoSProtection,       # 访问次数超出限制
-                '1033': BadRequest,           # 合约周期字段值错误
-                '1034': BadRequest,           # 报单价格类型字段值错误
-                '1035': BadRequest,           # 报单方向字段值错误
-                '1036': BadRequest,           # 报单开平字段值错误
-                '1037': BadRequest,           # 杠杆倍数不符合要求
-                '1038': BadRequest,           # 报单价格不符合最小变动价
-                '1039': BadRequest,           # 报单价格超出限制
-                '1040': BadRequest,           # 报单数量不合法
-                '1041': BadRequest,           # 报单数量超出限制
-                '1042': BadRequest,           # 超出多头持仓限制
-                '1043': BadRequest,           # 超出多头持仓限制
-                '1044': BadRequest,           # 超出平台持仓限制
-                '1045': BadRequest,           # 杠杆倍数与所持有仓位的杠杆不符合
-                '1047': InsufficientFunds,    # 可用保证金不足
-                '1048': BadRequest,           # 持仓量不足
-                '1050': BadRequest,           # 客户报单号重复
-                '1051': OrderNotFound,        # 没有可撤订单
-                '1052': BadRequest,           # 超出批量数目限制
-                '1061': OrderNotFound,        # 订单不存在，无法撤单
-                '1062': CancelPending,        # 撤单中，无法重复撤单
-                '1065': BadRequest,           # 客户报单号不是整数
-                '1066': BadRequest,           # 字段不能为空
-                '1067': BadRequest,           # 字段不合法
-                '1069': BadRequest,           # 报单价格不合法
-                '1071': BadRequest,           # 订单已撤，无法撤单
-                '1100': PermissionDenied,     # 用户没有开仓权限
-                '1101': PermissionDenied,     # 用户没有平仓权限
-                '1102': PermissionDenied,     # 用户没有入金权限
-                '1103': PermissionDenied,     # 用户没有出金权限
-                '1200': AuthenticationError,  # 登录错误
+                'exact': {
+                    '403': AuthenticationError,   # 无效身份
+                    '1017': OrderNotFound,        # 查询订单不存在
+                    '1030': BadRequest,           # 输入错误
+                    '1031': BadRequest,           # 非法的报单来源
+                    '1032': DDoSProtection,       # 访问次数超出限制
+                    '1033': BadRequest,           # 合约周期字段值错误
+                    '1034': BadRequest,           # 报单价格类型字段值错误
+                    '1035': BadRequest,           # 报单方向字段值错误
+                    '1036': BadRequest,           # 报单开平字段值错误
+                    '1037': BadRequest,           # 杠杆倍数不符合要求
+                    '1038': BadRequest,           # 报单价格不符合最小变动价
+                    '1039': BadRequest,           # 报单价格超出限制
+                    '1040': BadRequest,           # 报单数量不合法
+                    '1041': BadRequest,           # 报单数量超出限制
+                    '1042': BadRequest,           # 超出多头持仓限制
+                    '1043': BadRequest,           # 超出多头持仓限制
+                    '1044': BadRequest,           # 超出平台持仓限制
+                    '1045': BadRequest,           # 杠杆倍数与所持有仓位的杠杆不符合
+                    '1047': InsufficientFunds,    # 可用保证金不足
+                    '1048': BadRequest,           # 持仓量不足
+                    '1050': BadRequest,           # 客户报单号重复
+                    '1051': OrderNotFound,        # 没有可撤订单
+                    '1052': BadRequest,           # 超出批量数目限制
+                    '1061': OrderNotFound,        # 订单不存在，无法撤单
+                    '1062': CancelPending,        # 撤单中，无法重复撤单
+                    '1065': BadRequest,           # 客户报单号不是整数
+                    '1066': BadRequest,           # 字段不能为空
+                    '1067': BadRequest,           # 字段不合法
+                    '1069': BadRequest,           # 报单价格不合法
+                    '1071': BadRequest,           # 订单已撤，无法撤单
+                    '1100': PermissionDenied,     # 用户没有开仓权限
+                    '1101': PermissionDenied,     # 用户没有平仓权限
+                    '1102': PermissionDenied,     # 用户没有入金权限
+                    '1103': PermissionDenied,     # 用户没有出金权限
+                    '1200': AuthenticationError,  # 登录错误
+                },
             },
             'options': {
                 'defaultLeverage': 10,
