@@ -14,23 +14,22 @@ class UXSymbol:
         return cls(*s.split(':'))
 
     def __repr__(self):
-        args = ', '.join(repr(f) for f in self.fields)
+        args = ', '.join(repr(field) for field in tuple(self))
         return f'UXSymbol({args})'
 
     def __str__(self):
-        return ':'.join(self.fields)
+        return ':'.join(self)
 
     def __eq__(self, other):
         if isinstance(other, UXSymbol):
-            return self.fields == other.fields
+            return tuple(self) == tuple(other)
         return False
 
     def __hash__(self):
         return hash(str(self))
-
-    @property
-    def fields(self):
-        return (self.exchange_id, self.market_type, self.name)
+    
+    def __iter__(self):
+        return (field for field in (self.exchange_id, self.market_type, self.name))
 
     @property
     def base_quote(self):

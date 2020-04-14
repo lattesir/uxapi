@@ -10,25 +10,29 @@ class UXTopic:
         return cls(*s.split(':'))
 
     def __repr__(self):
-        args = ', '.join(repr(f) for f in self.fields)
+        args = ', '.join(repr(field) for field in tuple(self))
         return f'UXTopic({args})'
 
     def __str__(self):
-        s = ':'.join(self.fields)
+        s = ':'.join(self)
         return s if self.extrainfo else s[:-1]
 
     def __eq__(self, other):
         if isinstance(other, UXTopic):
-            return self.fields == other.fields
+            return tuple(self) == tuple(other)
         return False
 
     def __hash__(self):
         return hash(str(self))
 
-    @property
-    def fields(self):
-        return (self.exchange_id, self.market_type,
-                self.datatype, self.extrainfo)
+    def __iter__(self):
+        fields = (
+            self.exchange_id,
+            self.market_type,
+            self.datatype,
+            self.extrainfo
+        )
+        return (field for field in fields)
 
     @property
     def maintype(self):
