@@ -116,7 +116,7 @@ def contract_expiration(delivery_time, since=None):
     days = (delivery_time - since).days
     if days < 0:
         raise ValueError('invalid delivery_time')
-    elif 0 < days <= 7:
+    elif 0 <= days <= 7:
         return 'CW'
     elif 7 < days <= 14:
         return 'NW'
