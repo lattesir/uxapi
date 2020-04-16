@@ -710,7 +710,7 @@ class huobidm(Exchange):
         fee_cost = self.safe_float(order, 'fee')
         if fee_cost is not None:
             fee = {
-                'cost': -fee_cost,
+                'cost': fee_cost,
                 'currency': currency,
             }
         return {
