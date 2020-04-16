@@ -110,25 +110,6 @@ def contract_delivery_time(expiration, delivery_hour, since=None):
     raise ValueError('invalid expiration')
 
 
-def contract_expiration(delivery_time, since=None):
-    delivery_time = pendulum.instance(delivery_time)
-    since = pendulum.instance(since or pendulum.now('UTC'))
-    days = (delivery_time - since).days
-    if days < 0:
-        raise ValueError('invalid delivery_time')
-    elif 0 <= days <= 7:
-        return 'CW'
-    elif 7 < days <= 14:
-        return 'NW'
-    cq = contract_delivery_time('CQ', delivery_time.hour, since)
-    if (delivery_time - cq).days == 0:
-        return 'CQ'
-    nq = contract_delivery_time('NQ', delivery_time.hour, since)
-    if (delivery_time - nq).days == 0:
-        return 'NQ'
-    raise ValueError('invalid delivery_time')
-
-
 _PENDULUM_UNITS = ['day', 'week', 'month', 'year', 'decade', 'century']
 _EXTENDED_UNITS = [
     'previous_week', 'next_week', 
