@@ -1,5 +1,4 @@
 import os
-import sys
 import argparse
 
 import dotenv
@@ -45,6 +44,7 @@ def main():
 
     runner = RestRunner(args.exchange_id, args.market_type)
     runner._run(args.method, args.args)
+
 
 if __name__ == '__main__':
     main()

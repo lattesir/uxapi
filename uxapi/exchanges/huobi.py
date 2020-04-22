@@ -2,7 +2,6 @@ import datetime
 import asyncio
 import gzip
 import json
-import collections
 import urllib.parse
 import bisect
 from urllib.parse import parse_qs
@@ -19,7 +18,6 @@ from uxapi import Queue
 from uxapi import Awaitables
 from uxapi.exchanges.ccxt import huobidm
 from uxapi.helpers import (
-    all_equal,
     keysort,
     hmac,
     extend,
@@ -85,7 +83,7 @@ class Huobipro(UXPatch, huobipro):
                 }
             },
         })
- 
+
     def order_book_merger(self):
         return HuobiproOrderBookMerger(self)
 
@@ -199,7 +197,7 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
         if self.wsreq is None:
             self.topic = patch['ch']
             self.start_wsreq()
-            
+
         self.cache.append(patch)
         if not self.future:
             self.future = self.wsreq.request({
@@ -304,9 +302,9 @@ class Huobidm(UXPatch, huobidm):
                 'market': {
                     'ticker': 'market.{symbol}.detail',
                     'orderbook': 'market.{symbol}.depth.{level}',
-                    'high_freq': 'market.{symbol}.depth.size_{level}.high_freq?data_type={data_type}',
+                    'high_freq': 'market.{symbol}.depth.size_{level}.high_freq?data_type={data_type}',  # noqa: E501
                     'ohlcv': 'market.{symbol}.kline.{period}',
-                    'trade': 'market.{symbol}.trade.detail',   
+                    'trade': 'market.{symbol}.trade.detail',
                 },
                 'private': {
                     'myorder': 'orders.{currency}',
@@ -441,7 +439,7 @@ class HuobidmOrderBookMerger(_HuobiOrderBookMerger):
                              self.prices['asks'], False)
         self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
                              self.prices['bids'], True)
-        
+
 
 class HuobiWSHandler(WSHandler):
     def __init__(self, exchange, wsurl, topic_set, wsapi_type):
@@ -558,7 +556,7 @@ class HuobiWSHandler(WSHandler):
                 request['type'] = 'api'
         else:   # huobipro private_v2
             request = deep_extend({
-                'action': 'req', 
+                'action': 'req',
                 'ch': 'auth',
                 'params': {
                     'authType': 'api',
@@ -584,7 +582,7 @@ class HuobiWSHandler(WSHandler):
         sub_ok = False
         topic = None
 
-        if 'subbed' in msg: # huobipro & huobidm market
+        if 'subbed' in msg:  # huobipro & huobidm market
             sub_msg = True
             sub_ok = (msg['status'] == 'ok')
             topic = msg['subbed']
@@ -592,7 +590,7 @@ class HuobiWSHandler(WSHandler):
             sub_msg = True
             sub_ok = (msg['err-code'] == 0)
             topic = msg['topic']
-        elif msg.get('action') == 'sub': # huobipro private_v2
+        elif msg.get('action') == 'sub':  # huobipro private_v2
             sub_msg = True
             sub_ok = (msg['code'] == 200)
             topic = msg['ch']

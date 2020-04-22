@@ -1,6 +1,4 @@
-import os
 import time
-import asyncio
 import hmac as _hmac
 import base64
 import collections
@@ -27,7 +25,7 @@ def is_sorted(iterable, *, key=None, reverse=False):
 
 
 def all_equal(lst):
-   return lst[1:] == lst[:-1]
+    return lst[1:] == lst[:-1]
 
 
 def extend(*args):
@@ -61,7 +59,7 @@ def keysort(d):
 def to_timestamp(text, **options):
     dt = pendulum.parse(text, **options)
     return dt.timestamp() * 1000
-    
+
 
 def hmac(secret, msg, algorithm='sha256', digest='base64'):
     h = _hmac.new(secret, msg, algorithm)
@@ -112,7 +110,7 @@ def contract_delivery_time(expiration, delivery_hour, since=None):
 
 _PENDULUM_UNITS = ['day', 'week', 'month', 'year', 'decade', 'century']
 _EXTENDED_UNITS = [
-    'previous_week', 'next_week', 
+    'previous_week', 'next_week',
     'previous_month', 'next_month',
     'previous_quarter', 'quarter', 'next_quarter',
 ]

@@ -169,7 +169,7 @@ class UXPatch:
             symbols = None
         return super().fetch_order_books(symbols, params)
 
-    def fetch_ohlcv(self, symbol, timeframe='1m', since=None, 
+    def fetch_ohlcv(self, symbol, timeframe='1m', since=None,
                     limit=None, params=None):
         params = params or {}
         uxsymbol = self.to_uxsymbol(symbol)
@@ -344,7 +344,6 @@ class UXPatch:
         return super().cancel_all_orders(symbol, params)
 
     def edit_order(self, id, symbol=None, *args):
-        params = params or {}
         if symbol:
             uxsymbol = self.to_uxsymbol(symbol)
         else:
@@ -373,7 +372,7 @@ class UXPatch:
             return sp(self, uxsymbol, since, limit, params)
         else:
             return self._fetch_my_trades(uxsymbol, since, limit, params)
-        
+
     def _fetch_my_trades(self, uxsymbol, since, limit, params):
         if uxsymbol:
             symbol = self.convert_symbol(uxsymbol)
@@ -403,7 +402,7 @@ class UXPatch:
                 return self.markets[symbol]
             else:
                 symbol = UXSymbol(self.id, self.market_type, symbol)
-        
+
         if isinstance(symbol, UXSymbol):
             try:
                 symbol = self.convert_symbol(symbol)

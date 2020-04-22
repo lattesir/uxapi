@@ -47,7 +47,7 @@ class Binance(UXPatch, ccxt.binance):
                     'miniTicker': '{symbol}@miniTicker',
                     '!miniTicker': '!miniTicker@arr',
                     'quote': '{symbol}@bookTicker',
-                    '!quote': '!bookTicker', 
+                    '!quote': '!bookTicker',
                 },
                 'private': {'private': 'private'},
                 'fmarket': {
@@ -83,7 +83,7 @@ class Binance(UXPatch, ccxt.binance):
         wsapi_type = wsapi_types.pop()
         wsurl = self.urls['wsapi'][wsapi_type]
         return BinanceWSHandler(self, wsurl, topic_set, wsapi_type)
-    
+
     def wsapi_type(self, uxtopic):
         if uxtopic.market_type == 'spot':
             if uxtopic.maintype == 'private':
@@ -170,8 +170,7 @@ class BinanceWSHandler(WSHandler):
             raise RuntimeError('invalid wsapi_type')
         credentials = self.get_credentials()
         headers = {'X-MBX-APIKEY': credentials['apiKey']}
-        async with self.session.request(method, url,
-                params=params, headers=headers) as resp:
+        async with self.session.request(method, url, params=params, headers=headers) as resp:
             result = await resp.json()
         return result
 
@@ -182,7 +181,7 @@ class BinanceWSHandler(WSHandler):
     def prepare(self):
         if self.login_required:
             self.awaitables.create_task(self.keepalive(), 'keepalive')
-    
+
     async def keepalive(self):
         interval = 20 * 60
         while True:
@@ -194,7 +193,7 @@ class BinanceWSHandler(WSHandler):
                 await self.request_listen_key('PUT', params)
             except asyncio.CancelledError:
                 raise
-            except Exception as exc:
+            except Exception:
                 self.logger.exception('request listen key failed')
 
     def decode(self, data):

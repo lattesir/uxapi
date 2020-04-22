@@ -438,7 +438,7 @@ okex.swap.myorder:
 class FullOrderBook:
     def __init__(self, merger):
         self.merger = merger
-    
+
     def __call__(self, msg):
         try:
             msg = self.merger(msg)

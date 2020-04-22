@@ -1,6 +1,5 @@
 import asyncio
 from yarl import URL
-from uxapi.helpers import extend
 import aiohttp
 from aiohttp.client_exceptions import InvalidURL
 from aiohttp.helpers import sentinel, proxies_from_env
@@ -10,7 +9,7 @@ class Session:
     def __init__(self, **kwargs):
         self._session_obj = None
         self._kwargs = kwargs
-    
+
     @property
     def session_obj(self):
         if self._session_obj is None:

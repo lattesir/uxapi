@@ -4,7 +4,6 @@ import time
 import asyncio
 import bisect
 from itertools import zip_longest, chain
-from decimal import Decimal
 import binascii
 
 import ccxt
@@ -17,17 +16,14 @@ from uxapi import UXPatch
 from uxapi.helpers import (
     hmac,
     deep_extend,
-    all_equal,
     contract_delivery_time,
-    to_timestamp,
-    is_sorted
 )
 
 
 @register
 class Okex(UXPatch, ccxt.okex):
     id = 'okex'
-    
+
     def __init__(self, market_type, config=None):
         return super().__init__(market_type, deep_extend({
             'options': {
@@ -134,7 +130,7 @@ class Okex(UXPatch, ccxt.okex):
 
     def wshandler(self, topic_set):
         return OkexWSHandler(self, self.urls['wsapi'], topic_set)
-        
+
     def convert_symbol(self, uxsymbol):
         if uxsymbol.market_type == 'spot':
             return uxsymbol.name
@@ -166,11 +162,11 @@ class Okex(UXPatch, ccxt.okex):
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
         template = self.wsapi[self.market_type][maintype]
-        
+
         if maintype == 'account':
             if self.market_type == 'swap':
                 uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
-                                uxtopic.extrainfo)
+                                    uxtopic.extrainfo)
                 return template.format(symbol=self.convert_symbol(uxsymbol))
             else:
                 return template.format(currency=uxtopic.extrainfo)

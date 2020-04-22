@@ -92,7 +92,7 @@ class Awaitables:
                 wait_aws_change.cancel()
             if wait_aws_change not in done:
                 break
-   
+
         if not done:
             raise asyncio.TimeoutError()
 

@@ -1,5 +1,6 @@
 import asyncio
 
+
 class Queue:
     def __init__(self):
         self._queue_obj = None

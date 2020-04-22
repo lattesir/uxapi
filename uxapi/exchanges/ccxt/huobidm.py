@@ -14,6 +14,7 @@ from ccxt.base.errors import (
     PermissionDenied
 )
 
+
 class huobidm(Exchange):
     def describe(self):
         return self.deep_extend(super(huobidm, self).describe(), {
@@ -82,7 +83,7 @@ class huobidm(Exchange):
                         'liquidation_orders',           # 获取强平单
                         'api_trading_status',           # 获取用户的API指标禁用信息(private)
                     ],
-     
+
                     'post': [
                         'account_info',                 # 获取用户账户信息
                         'position_info',                # 获取用户持仓信息
@@ -167,7 +168,7 @@ class huobidm(Exchange):
                         'liquidation_orders',           # 获取强平订单
                     ],
                 },
-                
+
                 'index': {
                     'get': [
                         'history/index',    # 获取指数K线数据
@@ -389,7 +390,7 @@ class huobidm(Exchange):
         #     [10266.11, 6],
         #     [10267.12, 8],
         #     [10267.4, 3],
-        #     ... 
+        #     ...
         #   ],
         #   "bids": [
         #     [10266.1, 2185],
@@ -411,7 +412,7 @@ class huobidm(Exchange):
             result['nonce'] = orderbook['version']
             return result
         raise ExchangeError(self.id + ' fetchOrderBook() returned unrecognized response: ' + self.json(response))
-        
+
     def fetch_ohlcv(self, symbol, timeframe='1m', since=None,
                     limit=1000, params=None):
         self.load_markets()
@@ -517,11 +518,11 @@ class huobidm(Exchange):
             'page_size': 50
         })
         response = getattr(self, method)(self.extend(request, params or {}))
-        # {                                               
-        #   "data": {                                      
-        #     "current_page": 1,                              
-        #     "total_page": 1,                                
-        #     "total_size": 2,                                
+        # {
+        #   "data": {
+        #     "current_page": 1,
+        #     "total_page": 1,
+        #     "total_size": 2,
         #     "trades": [{
         #       "contract_code": "EOS190419",
         #       "contract_type": "this_week",
@@ -537,10 +538,10 @@ class huobidm(Exchange):
         #       "trade_turnover": 80,
         #       "role": "maker",
         #       "trade_volume": 8
-        #     }]                                        
-        #   },                                                
-        #   "status": "ok",                                   
-        #   "ts": 1555654870867                               
+        #     }]
+        #   },
+        #   "status": "ok",
+        #   "ts": 1555654870867
         # }
         return self.parse_trades(response['data']['trades'], market,
                                  since, limit)
@@ -587,7 +588,7 @@ class huobidm(Exchange):
     def fetch_orders(self, symbol=None, since=None, limit=None, params=None):
         return self.fetch_orders_by_ids(None, symbol, since, limit, params or {})
 
-    def fetch_orders_by_ids(self, ids, symbol, since=None, 
+    def fetch_orders_by_ids(self, ids, symbol, since=None,
                             limit=None, params=None):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' fetchOpenOrders requires a symbol argument')
@@ -719,7 +720,7 @@ class huobidm(Exchange):
             'datetime': self.iso8601(timestamp),
             'lastTradeTimestamp': None,
             'status': status,
-            'symbol': symbol,  
+            'symbol': symbol,
             'type': self.safe_string(order, 'order_price_type'),
             'side': side,
             'price': price,
@@ -734,14 +735,14 @@ class huobidm(Exchange):
 
     def parse_order_status(self, status):
         statuses = {
-            '1':  'open',     # pre commit
-            '2':  'open',     # pre commit
-            '3':  'open',     # committed
-            '4':  'open',     # partial filled
-            '5':  'canceled', # partial canceled
-            '6':  'closed',   # completed
-            '7':  'canceled', # canceled
-            '11': 'canceled', # cancelling
+            '1':  'open',       # pre commit
+            '2':  'open',       # pre commit
+            '3':  'open',       # committed
+            '4':  'open',       # partial filled
+            '5':  'canceled',   # partial canceled
+            '6':  'closed',     # completed
+            '7':  'canceled',   # canceled
+            '11': 'canceled',   # cancelling
         }
         return self.safe_string(statuses, status, status)
 
@@ -842,7 +843,7 @@ class huobidm(Exchange):
         #   },
         #   "ts": 1490759594752
         # }
-        return  response
+        return response
 
     def cancel_all_orders(self, symbol=None, params=None):
         if symbol is None:
@@ -953,7 +954,7 @@ class huobidm(Exchange):
             assert api == 'general' and path == 'heartbeat'
             url = self.urls['heartbeat'] + '/heartbeat'
             return {'url': url, 'method': method, 'body': body, 'headers': headers}
-            
+
         url = f'/{prefix}{path}'
         url = self.implode_params(url, params)
         query = self.omit(params, self.extract_params(path))

@@ -27,7 +27,7 @@ class UXSymbol:
 
     def __hash__(self):
         return hash(str(self))
-    
+
     def __iter__(self):
         return (field for field in (self.exchange_id, self.market_type, self.name))
 

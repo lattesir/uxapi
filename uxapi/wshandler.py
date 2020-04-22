@@ -1,6 +1,4 @@
-import json
 import logging
-import asyncio
 
 from aiohttp import WSMsgType
 
@@ -86,10 +84,10 @@ class WSHandler:
     def create_keepalive_task(self):
         self.pre_processors.prepend(self.on_keepalive_message)
         return self.awaitables.create_task(self.keepalive(), 'keepalive')
-        
+
     async def keepalive(self):
         raise NotImplementedError
-        
+
     def on_keepalive_message(self, message):
         raise NotImplementedError
 
@@ -101,7 +99,7 @@ class WSHandler:
         self.pre_processors.append(self.on_login_message)
         credentials = self.get_credentials()
         return self.awaitables.create_task(self.login(credentials), 'login')
-        
+
     async def login(self, credentials):
         command = self.login_command(credentials)
         await self.send(command)
@@ -124,7 +122,7 @@ class WSHandler:
         topic_set = {self.convert_topic(topic) for topic in self.topic_set}
         self.pending_topics = topic_set
         return self.awaitables.create_task(self.subscribe(topic_set), 'subscribe')
-        
+
     def convert_topic(self, topic: UXTopic):
         return self.exchange.convert_topic(topic)
 
@@ -157,7 +155,7 @@ class WSHandler:
             return wsmsg.data
         else:
             raise RuntimeError(f'unexpected message: {wsmsg}')
-            
+
     def decode(self, data):
         return data
 

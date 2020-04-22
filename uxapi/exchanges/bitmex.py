@@ -2,9 +2,7 @@ import time
 import asyncio
 import json
 import operator
-import collections
 
-import pendulum
 import ccxt
 
 from uxapi import register
@@ -340,4 +338,3 @@ class BitmexOrderBookMerger:
 
         data = sorted(self.data.values(), key=sortkey)
         self.snapshot['data'] = data
-

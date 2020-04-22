@@ -1,5 +1,6 @@
 import asyncio
 
+
 class Event:
     def __init__(self):
         self._event_obj = None

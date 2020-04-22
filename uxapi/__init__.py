@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from uxapi.__version__ import VERSION, __version__
 from uxapi.symbol import UXSymbol
 from uxapi.topic import UXTopic
