@@ -580,7 +580,8 @@ class huobidm(Exchange):
 
     def fetch_order(self, id, symbol=None, params=None):
         params = params or {}
-        orders = self.fetch_orders_by_ids([id], symbol, params=params)
+        ids = [id] if id else None
+        orders = self.fetch_orders_by_ids(ids, symbol, params=params)
         if orders:
             return orders[0]
         raise OrderNotFound(f'{self.id} order {id} not found')
