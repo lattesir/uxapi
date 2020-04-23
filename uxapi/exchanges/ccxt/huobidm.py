@@ -270,7 +270,13 @@ class huobidm(Exchange):
             market_type = 'swap'
             symbol = f'{base}-{quote}'
         active = (self.safe_integer(market, 'contract_status') == 1)
-        price_precision = -Decimal(market['price_tick']).adjusted()
+        price_tick = Decimal(market['price_tick'])
+        exp = price_tick.adjusted()
+        mantissa = price_tick.scaleb(-exp)
+        if round(mantissa) == 10:
+            price_precision = -exp
+        else:
+            price_precision = -exp + 1
         return {
             'id': symbol,
             'symbol': symbol,
