@@ -274,9 +274,9 @@ class huobidm(Exchange):
         exp = price_tick.adjusted()
         mantissa = price_tick.scaleb(-exp)
         if round(mantissa) == 10:
-            price_precision = -exp
+            price_precision = -exp - 1
         else:
-            price_precision = -exp + 1
+            price_precision = -exp
         return {
             'id': symbol,
             'symbol': symbol,
