@@ -210,22 +210,16 @@ huobi.spot.myorder:
     datatype: myorder
     extrainfo: BTC/USDT
 
+huobi.spot.myorder.all:
+    exchange_id: huobi
+    market_type: spot
+    datatype: myorder
+    extrainfo: '*'
+
 huobi.spot.accounts:
     exchange_id: huobi
     market_type: spot
-    datatype: accounts.1
-    extrainfo: ''
-
-huobi.spot.v2_clearing:
-    exchange_id: huobi
-    market_type: spot
-    datatype: v2_clearing
-    extrainfo: BTC/USDT
-
-huobi.spot.v2_accounts:
-    exchange_id: huobi
-    market_type: spot
-    datatype: v2_accounts.1
+    datatype: accounts
     extrainfo: ''
 
 ################

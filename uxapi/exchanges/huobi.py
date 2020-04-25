@@ -21,7 +21,6 @@ from uxapi.helpers import (
     keysort,
     hmac,
     extend,
-    deep_extend,
     is_sorted
 )
 
@@ -57,9 +56,8 @@ class Huobipro(UXPatch, huobipro):
             'urls': {
                 'wsapi': {
                     'market': 'wss://api.huobi.pro/ws',
-                    'private': 'wss://api.huobi.pro/ws/v1',
-                    'private_v2': 'wss://api.huobi.pro/ws/v2',
-                    'private_v2_aws': 'wss://api-aws.huobi.pro/ws/v2',
+                    'private': 'wss://api.huobi.pro/ws/v2',
+                    'private_aws': 'wss://api-aws.huobi.pro/ws/v2',
                 },
             },
 
@@ -73,13 +71,9 @@ class Huobipro(UXPatch, huobipro):
                     'bbo': 'market.{symbol}.bbo',
                 },
                 'private': {
-                    'accounts': 'accounts?model={model}',
-                    'myorder': 'orders.{symbol}.update',
-                    'myorder_deprecated': 'orders.{symbol}',
-                },
-                'private_v2': {
-                    'v2_accounts': 'accounts.update{mode}',
-                    'v2_clearing': 'trade.clearing#{symbol}'
+                    'myorder': 'orders#{symbol}',
+                    'accounts': 'accounts.update#{mode}',
+                    'clearing': 'trade.clearing#{symbol}'
                 }
             },
         })
@@ -120,16 +114,16 @@ class Huobipro(UXPatch, huobipro):
         template = self.wsapi[wsapi_type][maintype]
 
         if maintype == 'accounts':
-            model = '1' if subtypes and subtypes[0] == '1' else '0'
-            return template.format(model=model)
-        if maintype == 'v2_accounts':
-            mode = '#1' if subtypes and subtypes[0] == '1' else ''
+            mode = subtypes[0] if subtypes else '1'
             return template.format(mode=mode)
 
         params = {}
         uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                             uxtopic.extrainfo)
-        params['symbol'] = self.market_id(uxsymbol)
+        if uxsymbol.name == '*':
+            params['symbol'] = '*'
+        else:
+            params['symbol'] = self.market_id(uxsymbol)
         if maintype in ['orderbook', 'mbp']:
             if not subtypes:
                 assert maintype == 'orderbook'
@@ -445,10 +439,10 @@ class HuobiWSHandler(WSHandler):
     def __init__(self, exchange, wsurl, topic_set, wsapi_type):
         super().__init__(exchange, wsurl, topic_set)
         self.wsapi_type = wsapi_type
-        self.is_huobidm = (exchange.market_type != 'spot')
+        self.market_type = exchange.market_type
 
     def on_connected(self):
-        if self.is_huobidm and self.wsapi_type == 'private':
+        if self.market_type != 'spot' and self.wsapi_type == 'private':
             self.pre_processors.append(self.on_error_message)
 
     def on_error_message(self, msg):
@@ -524,20 +518,21 @@ class HuobiWSHandler(WSHandler):
         now = datetime.datetime.utcnow()
         timestamp = now.isoformat(timespec='seconds')
 
-        if self.wsapi_type == 'private':
-            params = keysort({
-                'SignatureMethod': signature_method,
-                'SignatureVersion': '2',
-                'AccessKeyId': apikey,
-                'Timestamp': timestamp
-            })
-        else:   # private_v2
+        if self.market_type == 'spot':
             params = keysort({
                 'signatureMethod': signature_method,
                 'signatureVersion': '2.1',
                 'accessKey': apikey,
                 'timestamp': timestamp
             })
+        else:
+            params = keysort({
+                'SignatureMethod': signature_method,
+                'SignatureVersion': '2',
+                'AccessKeyId': apikey,
+                'Timestamp': timestamp
+            })
+
         auth = urllib.parse.urlencode(params)
         url = yarl.URL(self.wsurl)
         payload = '\n'.join(['GET', url.host, url.path, auth])
@@ -547,23 +542,22 @@ class HuobiWSHandler(WSHandler):
         )
         signature = signature_bytes.decode()
 
-        if self.wsapi_type == 'private':
+        if self.market_type == 'spot':
+            params.update({
+                'authType': 'api',
+                'signature': signature
+            })
+            request = {
+                'action': 'req',
+                'ch': 'auth',
+                'params': params
+            }
+        else:
             request = extend({
                 'op': 'auth',
                 'Signature': signature,
+                'type': 'api'
             }, params)
-            if self.is_huobidm:
-                request['type'] = 'api'
-        else:   # huobipro private_v2
-            request = deep_extend({
-                'action': 'req',
-                'ch': 'auth',
-                'params': {
-                    'authType': 'api',
-                    "signature": signature
-                }
-            }, {'params': params})
-
         return request
 
     def create_subscribe_task(self):
@@ -586,11 +580,11 @@ class HuobiWSHandler(WSHandler):
             sub_msg = True
             sub_ok = (msg['status'] == 'ok')
             topic = msg['subbed']
-        elif msg.get('op') == 'sub':  # huobipro & huobidm private
+        elif msg.get('op') == 'sub':  # huobidm private
             sub_msg = True
             sub_ok = (msg['err-code'] == 0)
             topic = msg['topic']
-        elif msg.get('action') == 'sub':  # huobipro private_v2
+        elif msg.get('action') == 'sub':  # huobipro private
             sub_msg = True
             sub_ok = (msg['code'] == 200)
             topic = msg['ch']
@@ -608,9 +602,10 @@ class HuobiWSHandler(WSHandler):
         commands = []
         for ch, params in topics.items():
             if self.wsapi_type == 'private':
-                request = {'op': 'sub', 'topic': ch}
-            elif self.wsapi_type == 'private_v2':
-                request = {'action': 'sub', 'ch': ch}
+                if self.market_type == 'spot':
+                    request = {'action': 'sub', 'ch': ch}
+                else:
+                    request = {'op': 'sub', 'topic': ch}
             else:
                 request = {'sub': ch}
             request.update(params)
@@ -625,7 +620,7 @@ class HuobiWSHandler(WSHandler):
         return ch, params
 
     def decode(self, data):
-        # private_v2 return str not bytes
+        # huobipro private return str not bytes
         if isinstance(data, bytes):
             msg = gzip.decompress(data).decode()
         else:
