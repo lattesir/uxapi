@@ -947,7 +947,7 @@ class huobidm(Exchange):
     def sign(self, path, api='public', method='GET', params={}, headers=None, body=None):
         if api == 'futures':
             if path.startswith('market/'):
-                prefix = f'/'
+                prefix = '/'
             else:
                 prefix = f'api/{self.version}/contract_'
         elif api == 'swap':
@@ -968,12 +968,12 @@ class huobidm(Exchange):
         if method == 'POST' or path == 'api_trading_status':
             self.check_required_credentials()
             timestamp = self.ymdhms(self.milliseconds(), 'T')
-            request = self.keysort(self.extend({
+            request = self.keysort({
                 'SignatureMethod': 'HmacSHA256',
                 'SignatureVersion': '2',
                 'AccessKeyId': self.apiKey,
                 'Timestamp': timestamp,
-            }, query))
+            })
             auth = self.urlencode(request)
             payload = '\n'.join([method, self.hostname, url, auth])
             signature = self.hmac(self.encode(payload), self.encode(self.secret), hashlib.sha256, 'base64')
