@@ -9,7 +9,7 @@ import binascii
 import ccxt
 import pendulum
 
-from uxapi import register
+from uxapi import register_exchange
 from uxapi import UXSymbol
 from uxapi import WSHandler
 from uxapi import UXPatch
@@ -20,10 +20,8 @@ from uxapi.helpers import (
 )
 
 
-@register
+@register_exchange('okex')
 class Okex(UXPatch, ccxt.okex):
-    id = 'okex'
-
     def __init__(self, market_type, config=None):
         return super().__init__(market_type, deep_extend({
             'options': {

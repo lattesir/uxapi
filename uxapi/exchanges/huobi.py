@@ -10,7 +10,7 @@ import yarl
 
 import pendulum
 from ccxt import huobipro
-from uxapi import register
+from uxapi import register_exchange
 from uxapi import UXSymbol
 from uxapi import WSHandler
 from uxapi import UXPatch
@@ -25,10 +25,8 @@ from uxapi.helpers import (
 )
 
 
-@register
+@register_exchange('huobi')
 class Huobi:
-    id = 'huobi'
-
     def __init__(self, market_type, config):
         if market_type == 'spot':
             cls = Huobipro
@@ -41,8 +39,6 @@ class Huobi:
 
 
 class Huobipro(UXPatch, huobipro):
-    id = 'huobi'
-
     def describe(self):
         return self.deep_extend(super().describe(), {
             'has': {
@@ -256,8 +252,6 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
 
 
 class Huobidm(UXPatch, huobidm):
-    id = 'huobi'
-
     def __init__(self, market_type, config=None):
         if market_type == 'index':
             market_type = 'futures'

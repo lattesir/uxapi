@@ -5,7 +5,7 @@ import operator
 
 import ccxt
 
-from uxapi import register
+from uxapi import register_exchange
 from uxapi import UXSymbol
 from uxapi import UXPatch
 from uxapi import WSHandler
@@ -15,10 +15,8 @@ from uxapi.helpers import (
 )
 
 
-@register
+@register_exchange('bitmex')
 class Bitmex(UXPatch, ccxt.bitmex):
-    id = 'bitmex'
-
     def describe(self):
         return self.deep_extend(super().describe(), {
             'deliveryHourUTC': 12,

@@ -5,7 +5,7 @@ import asyncio
 import ccxt
 from yarl import URL
 
-from uxapi import register
+from uxapi import register_exchange
 from uxapi import UXSymbol
 from uxapi import UXPatch
 from uxapi import Session
@@ -14,10 +14,8 @@ from uxapi import Awaitables
 from uxapi.helpers import deep_extend, is_sorted
 
 
-@register
+@register_exchange('binance')
 class Binance(UXPatch, ccxt.binance):
-    id = 'binance'
-
     def __init__(self, market_type, config=None):
         return super().__init__(market_type, deep_extend({
             'options': {
