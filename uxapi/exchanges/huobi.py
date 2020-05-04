@@ -32,6 +32,7 @@ class Huobi:
             cls = Huobipro
         else:
             cls = Huobidm
+        cls.id = type(self).id
         self._exchange = cls(market_type, config)
 
     def __getattr__(self, attr):

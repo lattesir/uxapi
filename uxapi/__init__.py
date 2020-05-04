@@ -19,16 +19,16 @@ from uxapi.wshandler import WSHandler
 _registry = {}
 
 
-def register_exchange(key):
+def register_exchange(exchange_id):
     def register(exchange_class):
-        _registry[key] = exchange_class
-        exchange_class.id = key
+        _registry[exchange_id] = exchange_class
+        exchange_class.id = exchange_id
         return exchange_class
     return register
 
 
-def new_exchange(key, market_type, config=None):
-    return _registry[key](market_type, config)
+def new_exchange(exchange_id, market_type, config=None):
+    return _registry[exchange_id](market_type, config)
 
 
 from uxapi.exchanges.okex import (
