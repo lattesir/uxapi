@@ -1,0 +1,77 @@
+okex.futures.public_trades_btc_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: trade
+    extrainfo: BTC/USD.CQ
+    uid: trades
+
+okex.futures.orderbook_snapshot_btc_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: BTC/USD.CQ
+    uid: orderbook_snapshot
+
+okex.futures.orderbook_snapshot_eth_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: ETH/USD.CQ
+    uid: orderbook_snapshot
+
+okex.futures.public_trades_influx_btc_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: trade
+    extrainfo: BTC/USD.CQ
+    uid: public_trades_influx
+
+okex.futures.orderbook_influx_btc_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: BTC/USD.CQ
+    uid: orderbook_influx
+
+okex.futures.orderbook_influx_eth_usd_cq:
+    exchange_id: okex
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: ETH/USD.CQ
+    uid: orderbook_influx
+
+okex.futures.orderbook_delta:
+    exchange_id: okex
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: BTC/USD.CQ
+    uid: orderbook_delta
+
+
+
+
+
+
+
+
+
+huobi.futures.orderbook_snapshot_btc_usd_cq:
+    exchange_id: huobi
+    market_type: futures
+    datatype: high_freq.20.incremental
+    extrainfo: BTC/USD.CQ
+    uid: orderbook_snapshot
+
+huobi.futures.orderbook_delta:
+    exchange_id: huobi
+    market_type: futures
+    datatype: high_freq.150.incremental
+    extrainfo: BTC/USD.CQ
+    uid: delta
+
+huobi.futures.public_trades:
+    exchange_id: huobi
+    market_type: futures
+    datatype: trade
+    extrainfo: BTC/USD.CQ
+    uid: trades
