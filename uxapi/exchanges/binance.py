@@ -2,7 +2,7 @@ import json
 import bisect
 import asyncio
 
-import ccxt
+import pendulum
 from yarl import URL
 
 from uxapi import register_exchange
@@ -11,11 +11,12 @@ from uxapi import UXPatch
 from uxapi import Session
 from uxapi import WSHandler
 from uxapi import Awaitables
-from uxapi.helpers import deep_extend, is_sorted
+from uxapi.exchanges.ccxt.binance import binance
+from uxapi.helpers import deep_extend, is_sorted, contract_delivery_time
 
 
 @register_exchange('binance')
-class Binance(UXPatch, ccxt.binance):
+class Binance(UXPatch, binance):
     def __init__(self, market_type, config=None):
         return super().__init__(market_type, deep_extend({
             'options': {
@@ -25,12 +26,16 @@ class Binance(UXPatch, ccxt.binance):
 
     def describe(self):
         return self.deep_extend(super().describe(), {
+            'deliveryHourUTC': 8,
+
             'urls': {
                 'wsapi': {
                     'market': 'wss://stream.binance.com:9443/stream',
                     'private': 'wss://stream.binance.com:9443/ws',
-                    'fmarket': 'wss://fstream.binance.com/stream',
-                    'fprivate': 'wss://fstream.binance.com/ws',
+                    'dapiMarket': 'wss://dstream.binance.com/stream',
+                    'dapiPrivate': 'wss://dstream.binance.com/ws',
+                    'fapiMarket': 'wss://fstream.binance.com/stream',
+                    'fapiPrivate': 'wss://fstream.binance.com/ws',
                 }
             },
 
@@ -48,26 +53,50 @@ class Binance(UXPatch, ccxt.binance):
                     '!quote': '!bookTicker',
                 },
                 'private': {'private': 'private'},
-                'fmarket': {
+                'dapiMarket': {
+                    'aggTrade': '{symbol}@aggTrade',
+                    'indexPrice': '{pair}@indexPrice{speed_in_seconds}',
+                    'markPrice': '{symbol}@markPrice{speed_in_seconds}',
+                    'markPriceOfPair': '{pair}@markPrice{speed_in_seconds}',
+                    'ohlcv': '{symbol}@kline_{period}',
+                    'continuousKline': '{pair_contractType}@continuousKline_{period}',
+                    'indexPriceKline': '{pair}@indexPriceKline_{period}',
+                    'markPriceKline': '{symbol}@markPriceKline_{period}',
+                    'miniTicker': '{symbol}@miniTicker',
+                    '!miniTicker': '!miniTicker@arr',
+                    'ticker': '{symbol}@ticker',
+                    '!ticker': '!ticker@arr',
+                    'quote': '{symbol}@bookTicker',
+                    '!quote': '!bookTicker',
+                    'forceOrder': '{symbol}@forceOrder',
+                    '!forceOrder': '!forceOrder@arr',
+                    'orderbook': '{symbol}@depth{level_speed}',
+                },
+                'dapiPrivate': {'private': 'private'},
+                'fapiMarket': {
                     'orderbook': '{symbol}@depth{level_speed}',
                     'ohlcv': '{symbol}@kline_{period}',
                     'aggTrade': '{symbol}@aggTrade',
-                    'markPrice': '{symbol}@markPrice{speed}',
-                    '!markPrice': '!markPrice@arr@{speed}',
+                    'markPrice': '{symbol}@markPrice{speed_in_seconds}',
+                    '!markPrice': '!markPrice@arr@{speed_in_seconds}',
                     'miniTicker': '{symbol}@miniTicker',
                     'ticker': '{symbol}@ticker',
                     'quote': '{symbol}@bookTicker',
                     '!quote': '!bookTicker',
                 },
-                'fprivate': {'private': 'private'},
+                'fapiPrivate': {'private': 'private'},
             }
         })
 
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
         for market in markets:
-            market['type'] = self.market_type
-            if self.market_type == 'swap':
+            if market['type'] == 'futures':
+                market['contractValue'] = market['info']['contractSize']
+                timestamp = self.safe_integer(market['info'], 'deliveryDate')
+                delivery_time = pendulum.from_timestamp(timestamp / 1000)
+                market['deliveryTime'] = delivery_time.to_iso8601_string()
+            elif market['type'] == 'swap':
                 market['contractValue'] = 1
         return markets
 
@@ -83,26 +112,37 @@ class Binance(UXPatch, ccxt.binance):
         return BinanceWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
-        if uxtopic.market_type == 'spot':
-            if uxtopic.maintype == 'private':
-                return 'private'
-            else:
-                return 'market'
+        if uxtopic.market_type == 'futures':
+            prefix = 'dapi'
         elif uxtopic.market_type == 'swap':
-            if uxtopic.maintype == 'private':
-                return 'fprivate'
-            else:
-                return 'fmarket'
+            prefix = 'fapi'
         else:
-            raise ValueError('invalid topic')
+            prefix = ''
+
+        if uxtopic.maintype == 'private':
+            wstype = 'private'
+        else:
+            wstype = 'market'
+
+        if prefix:
+            return f'{prefix}{wstype[0].upper()}{wstype[1:]}'
+        else:
+            return wstype
 
     def convert_symbol(self, uxsymbol):
         if uxsymbol.market_type == 'spot':
             return uxsymbol.name
-        elif uxsymbol.market_type == 'swap':
+
+        if uxsymbol.market_type == 'futures':
+            delivery_time = contract_delivery_time(
+                expiration=uxsymbol.contract_expiration,
+                delivery_hour=self.deliveryHourUTC)
+            return f'{uxsymbol.base}{uxsymbol.quote}_{delivery_time:%y%m%d}'
+
+        if uxsymbol.market_type == 'swap':
             return f'{uxsymbol.quote}/{uxsymbol.base}'
-        else:
-            raise ValueError('invalid symbol')
+
+        raise ValueError(f'invalid symbol: {uxsymbol}')
 
     def convert_topic(self, uxtopic):
         maintype = uxtopic.maintype
@@ -112,9 +152,14 @@ class Binance(UXPatch, ccxt.binance):
 
         params = {}
         if uxtopic.extrainfo:
-            uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
-                                uxtopic.extrainfo)
-            params['symbol'] = self.market_id(uxsymbol).lower()
+            exchange_id, market_type, _, extrainfo = uxtopic
+            uxsymbol = UXSymbol(exchange_id, market_type, extrainfo)
+            if maintype == 'continuousKline':
+                params['pair_contractType'] = extrainfo
+            elif maintype in ('indexPrice', 'markPriceOfPair', 'indexPriceKline'):
+                params['pair'] = extrainfo
+            else:
+                params['symbol'] = self.market_id(uxsymbol).lower()
 
         if maintype == 'orderbook':
             if not subtypes:
@@ -124,15 +169,19 @@ class Binance(UXPatch, ccxt.binance):
             else:
                 level_speed = subtypes[0]
             params['level_speed'] = level_speed
-        elif maintype == 'ohlcv':
-            period = self.timeframes[subtypes[0]]
-            params['period'] = period
-        elif maintype in ['markPrice', '!markPrice']:
-            if subtypes and subtypes[0] == '1s':
-                speed = '@1s'
+
+        if maintype in ('ohlcv', 'continuousKline', 'indexPriceKline', 'markPriceKline'):
+            if subtypes:
+                params['period'] = self.timeframes[subtypes[0]]
             else:
-                speed = ''
-            params['speed'] = speed
+                params['period'] = '1m'
+
+        if maintype in ('indexPrice', 'markPrice', '!markPrice'):
+            if subtypes and subtypes[0] == '1s':
+                speed_in_seconds = '@1s'
+            else:
+                speed_in_seconds = ''
+            params['speed_in_seconds'] = speed_in_seconds
 
         return template.format(**params)
 
@@ -161,11 +210,13 @@ class BinanceWSHandler(WSHandler):
 
     async def request_listen_key(self, method, params=None):
         if self.wsapi_type == 'private':
-            url = 'https://api.binance.com/api/v3/userDataStream'
-        elif self.wsapi_type == 'fprivate':
-            url = 'https://fapi.binance.com/fapi/v1/listenKey'
+            baseurl = self.exchange.urls['api']['public']
+            url = f'{baseurl}/userDataStream'
+        elif self.wsapi_type in ('dapiPrivate', 'fapiPrivate'):
+            baseurl = self.exchange.urls['api'][self.wsapi_type]
+            url = f'{baseurl}/listenKey'
         else:
-            raise RuntimeError('invalid wsapi_type')
+            raise RuntimeError(f'invalid wsapi_type: {self.wsapi_type}')
         credentials = self.get_credentials()
         headers = {'X-MBX-APIKEY': credentials['apiKey']}
         async with self.session.request(method, url, params=params, headers=headers) as resp:
@@ -174,7 +225,7 @@ class BinanceWSHandler(WSHandler):
 
     @property
     def login_required(self):
-        return self.wsapi_type in ['private', 'fprivate']
+        return 'private' in self.wsapi_type.lower()
 
     def prepare(self):
         if self.login_required:
@@ -273,7 +324,10 @@ class BinanceOrderBookMerger:
                     snapshot_lst.insert(i, item)
 
     def fetch_order_book(self, symbol):
-        return self.exchange.publicGetDepth(params={
+        params = {
             'symbol': symbol,
             'limit': 1000,
-        })
+        }
+        market_type = self.exchange.market(symbol)['type']
+        method = self.exchange.method_by_type('publicGetDepth', market_type)
+        return getattr(self.exchange, method)(params)

@@ -58,6 +58,46 @@ binance.spot.private:
     datatype: private
     extrainfo: BTC/USDT
 
+##################
+# Binance Futures
+##################
+
+binance.futures.orderbook:
+    exchange_id: binance
+    market_type: futures
+    datatype: orderbook.5@100ms
+    extrainfo: BTC/USD.NQ
+
+binance.futures.orderbook.full:
+    exchange_id: binance
+    market_type: futures
+    datatype: orderbook.full
+    extrainfo: BTC/USD.CQ
+
+binance.futures.continuousKline:
+    exchange_id: binance
+    market_type: futures
+    datatype: continuousKline
+    extrainfo: btcusd_current_quarter
+
+binance.futures.indexPriceKline:
+    exchange_id: binance
+    market_type: futures
+    datatype: indexPriceKline.1h
+    extrainfo: btcusd
+
+binance.futures.markPrice:
+    exchange_id: binance
+    market_type: futures
+    datatype: markPrice.1s
+    extrainfo: BTC/USD.CQ
+
+binance.futures.private:
+    exchange_id: binance
+    market_type: futures
+    datatype: private
+    extrainfo: ''
+
 #################
 # Binance Swap
 #################
@@ -96,7 +136,7 @@ binance.swap.private:
     exchange_id: binance
     market_type: swap
     datatype: private
-    extrainfo: USDT/BTC
+    extrainfo: ''
 
 #################
 # Bitmex Futures
@@ -457,9 +497,9 @@ def main():
     exchange_id = topic.exchange_id
     market_type = topic.market_type
     exchange = new_exchange(exchange_id, market_type, {
-        'apiKey': os.environ.get(f'{exchange_id}_apiKey'),
-        'secret': os.environ.get(f'{exchange_id}_secret'),
-        'password': os.environ.get(f'{exchange_id}_password'),
+        'apiKey': os.getenv(f'{exchange_id}_apiKey'),
+        'secret': os.getenv(f'{exchange_id}_secret'),
+        'password': os.getenv(f'{exchange_id}_password'),
     })
     exchange.load_markets()
     wshandler = exchange.wshandler({topic})

@@ -9,9 +9,9 @@ from uxapi import new_exchange
 class RestRunner:
     def __init__(self, exchange_id, market_type):
         exchange = new_exchange(exchange_id, market_type, {
-            'apiKey': os.environ.get(f'{exchange_id}_apiKey'),
-            'secret': os.environ.get(f'{exchange_id}_secret'),
-            'password': os.environ.get(f'{exchange_id}_password')
+            'apiKey': os.getenv(f'{exchange_id}_apiKey'),
+            'secret': os.getenv(f'{exchange_id}_secret'),
+            'password': os.getenv(f'{exchange_id}_password')
         })
         exchange.load_markets()
         self.exchange = exchange
