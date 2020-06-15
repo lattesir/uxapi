@@ -1,6 +1,0 @@
-redis_url: localhost
-if_url: 13.231.220.148
-if_port: 8086
-if_user: nonadmin
-if_pass: 5jTD39S^txrgwL
-if_db: exchange

@@ -62,6 +62,16 @@ huobi.futures.orderbook_snapshot_btc_usd_cq:
     extrainfo: BTC/USD.CQ
     uid: orderbook_snapshot
 
+
+huobi.futures.orderbook_influx_btc_usd_cq:
+    exchange_id: huobi
+    market_type: futures
+    datatype: high_freq.20.incremental
+    extrainfo: BTC/USD.CQ
+    uid: orderbook_influx
+
+
+
 huobi.futures.orderbook_delta:
     exchange_id: huobi
     market_type: futures

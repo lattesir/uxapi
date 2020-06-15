@@ -225,7 +225,14 @@ def okex_orderbook_snapshot(context: WebsocketPipeline, msg) -> OrderBookSnapSho
 
 
 def huobi_orderbook_snapshot(context: WebsocketPipeline, msg):
-    print(msg)
+    fullbook = msg['tick']
+    return OrderBookSnapShot(
+        key=f"{context.topic.exchange_id}:{context.topic.market_type}:{context.topic.extrainfo}:orderbook_snapshot",
+        asks=convert_response(fullbook['asks']),
+        bids=convert_response(fullbook['bids']),
+        ts=int(fullbook['ts']),
+        extra=None,
+    )
 
 
 def is_price_ascending(orderbook_side, reverse=False):
