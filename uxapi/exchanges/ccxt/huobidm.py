@@ -50,6 +50,7 @@ class huobidm(Exchange):
                 'this_week': 'CW',
                 'next_week': 'NW',
                 'quarter': 'CQ',
+                'next_quarter': 'NQ',
             },
             'urls': {
                 'logo': 'https://user-images.githubusercontent.com/4180036/64329037-1d804100-d001-11e9-987f-43c114fab34e.png',
