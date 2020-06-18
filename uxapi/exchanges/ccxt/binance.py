@@ -1177,7 +1177,7 @@ class binance(Exchange):
         average = None
         if cost is not None:
             if filled:
-                average = cost / filled
+                average = self.safe_float(order, 'avgPrice', cost / filled)
                 if self.options['parseOrderToPrecision']:
                     average = float(self.price_to_precision(symbol, average))
             if self.options['parseOrderToPrecision']:
