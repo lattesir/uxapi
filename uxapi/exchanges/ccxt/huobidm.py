@@ -701,7 +701,8 @@ class huobidm(Exchange):
         status = self.safe_string(order, 'status')
         status = self.parse_order_status(status)
         currency = self.safe_string(order, 'symbol')
-        if market['type'] == 'futures':
+        type = market['type'] if market else self.options['defaultType']
+        if type == 'futures':
             contract_type = self.safe_string(order, 'contract_type')
             expiration = self.expirations[contract_type]
             symbol = f'{currency}_{expiration}'
