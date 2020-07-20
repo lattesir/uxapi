@@ -83,6 +83,7 @@ class huobidm(Exchange):
                         'elite_position_ratio',         # 精英账户多空持仓对比-持仓量
                         'liquidation_orders',           # 获取强平单
                         'api_trading_status',           # 获取用户的API指标禁用信息(private)
+                        'available_level_rate',         # 查询用户可用杠杆倍数
                     ],
 
                     'post': [

@@ -5,9 +5,9 @@ class UXSymbol:
         self.name = name
         self.isspecial = self.name.startswith('!')
         if self.isspecial:
-            self.name_info = name[1:].split('.', maxsplit=2)
+            self.name_info = name[1:].split('.')
         else:
-            self.name_info = name.split('.', maxsplit=2)
+            self.name_info = name.split('.')
 
     @classmethod
     def fromstring(cls, s):
@@ -47,5 +47,12 @@ class UXSymbol:
 
     @property
     def contract_expiration(self):
-        assert len(self.name_info) >= 2, 'invalid format'
         return self.name_info[1]
+
+    @property
+    def option_strike_price(self):
+        return self.name_info[2].replace('_', '.')
+
+    @property
+    def option_type(self):
+        return self.name_info[3]

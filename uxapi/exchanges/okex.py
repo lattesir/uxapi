@@ -80,7 +80,12 @@ class Okex(UXPatch, ccxt.okex):
                     'price_range': 'swap/price_range:{symbol}',
                     'mark_price': 'swap/mark_price:{symbol}',
                 },
-                'options': {
+                'option': {
+                    'position': 'option/position:{currency}',
+                    'account': 'option/account:{currency}',
+                    'myorder': 'option/myorder:{currency}',
+                    'instruments': 'option/instruments:{currency}',
+                    'summary': 'option/summary:{currency}',
                     'ticker': 'option/ticker:{symbol}',
                     'orderbook': 'option/depth{level}:{symbol}',
                     'trade': 'option/trade:{symbol}',
@@ -151,20 +156,26 @@ class Okex(UXPatch, ccxt.okex):
         if uxsymbol.market_type == 'index':
             return f'{uxsymbol.base}-{uxsymbol.quote}'
 
-        if uxsymbol.market_type == 'options':
-            return uxsymbol.name
+        if uxsymbol.market_type == 'option':
+            base = uxsymbol.base
+            quote = uxsymbol.quote
+            dt = pendulum.parse(uxsymbol.contract_expiration)
+            expiration = dt.format('YYMMDD')
+            strike_price = uxsymbol.option_strike_price
+            call_or_put = uxsymbol.option_type
+            return f'{base}-{quote}-{expiration}-{strike_price}-{call_or_put}'
 
         raise ValueError(f'invalid symbol: {uxsymbol}')
 
     def convert_topic(self, uxtopic):
+        exchange_id, market_type, _, extrainfo = uxtopic
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
         template = self.wsapi[self.market_type][maintype]
 
-        if maintype == 'account':
-            if self.market_type == 'swap':
-                uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
-                                    uxtopic.extrainfo)
+        if maintype in ('account', 'position', 'myorder'):
+            if 'symbol' in template:
+                uxsymbol = UXSymbol(exchange_id, market_type, extrainfo)
                 return template.format(symbol=self.convert_symbol(uxsymbol))
             else:
                 return template.format(currency=uxtopic.extrainfo)
@@ -172,8 +183,7 @@ class Okex(UXPatch, ccxt.okex):
             return template
         else:
             params = {}
-            uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
-                                uxtopic.extrainfo)
+            uxsymbol = UXSymbol(exchange_id, market_type, extrainfo)
             params['symbol'] = self.market_id(uxsymbol)
             if maintype == 'ohlcv':
                 params['period_in_sec'] = self.timeframes[subtypes[0]]

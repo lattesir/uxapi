@@ -466,6 +466,34 @@ okex.swap.myorder:
     market_type: swap
     datatype: myorder
     extrainfo: BTC/USD
+
+#############
+# Okex Option
+#############
+
+okex.option.orderbook:
+    exchange_id: okex
+    market_type: option
+    datatype: orderbook.400
+    extrainfo: BTC/USD.2020-09-25.3000.C
+
+okex.option.ohlcv:
+    exchange_id: okex
+    market_type: option
+    datatype: ohlcv.1m
+    extrainfo: EOS/USD.20200925.1_20.P
+
+okex.option.account:
+    exchange_id: okex
+    market_type: option
+    datatype: account
+    extrainfo: BTC-USD
+
+okex.option.myorder:
+    exchange_id: okex
+    market_type: option
+    datatype: myorder
+    extrainfo: BTC-USD
 """
 
 
