@@ -381,6 +381,18 @@ okex.spot.ticker:
     datatype: ticker
     extrainfo: BTC/USDT
 
+okex.spot.myorder:
+    exchange_id: okex
+    market_type: spot
+    datatype: myorder
+    extrainfo: BTC/USDT
+
+okex.spot.account:
+    exchange_id: okex
+    market_type: spot
+    datatype: account
+    extrainfo: BTC
+
 ###############
 # Okex Futures
 ###############
@@ -487,6 +499,12 @@ okex.option.account:
     exchange_id: okex
     market_type: option
     datatype: account
+    extrainfo: BTC-USD
+
+okex.option.position:
+    exchange_id: okex
+    market_type: option
+    datatype: position
     extrainfo: BTC-USD
 
 okex.option.myorder:

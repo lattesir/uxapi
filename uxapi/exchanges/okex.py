@@ -83,7 +83,7 @@ class Okex(UXPatch, ccxt.okex):
                 'option': {
                     'position': 'option/position:{currency}',
                     'account': 'option/account:{currency}',
-                    'myorder': 'option/myorder:{currency}',
+                    'myorder': 'option/order:{currency}',
                     'instruments': 'option/instruments:{currency}',
                     'summary': 'option/summary:{currency}',
                     'ticker': 'option/ticker:{symbol}',
@@ -168,33 +168,32 @@ class Okex(UXPatch, ccxt.okex):
         raise ValueError(f'invalid symbol: {uxsymbol}')
 
     def convert_topic(self, uxtopic):
-        exchange_id, market_type, _, extrainfo = uxtopic
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
         template = self.wsapi[self.market_type][maintype]
 
-        if maintype in ('account', 'position', 'myorder'):
-            if 'symbol' in template:
-                uxsymbol = UXSymbol(exchange_id, market_type, extrainfo)
-                return template.format(symbol=self.convert_symbol(uxsymbol))
-            else:
-                return template.format(currency=uxtopic.extrainfo)
-        elif maintype == 'instruments':
+        if maintype == 'instruments':
             return template
+
+        params = {}
+        if 'currency' in template:
+            params['currency'] = uxtopic.extrainfo
         else:
-            params = {}
+            exchange_id, market_type, _, extrainfo = uxtopic
             uxsymbol = UXSymbol(exchange_id, market_type, extrainfo)
             params['symbol'] = self.market_id(uxsymbol)
-            if maintype == 'ohlcv':
-                params['period_in_sec'] = self.timeframes[subtypes[0]]
-            if maintype == 'orderbook':
-                if not subtypes:
-                    params['level'] = '5'
-                elif subtypes[0] in ('full', 'tbt'):
-                    params['level'] = '_l2_tbt'
-                else:
-                    params['level'] = ''
-            return template.format(**params)
+
+        if maintype == 'ohlcv':
+            params['period_in_sec'] = self.timeframes[subtypes[0]]
+
+        if maintype == 'orderbook':
+            if not subtypes:
+                params['level'] = '5'
+            elif subtypes[0] in ('full', 'tbt'):
+                params['level'] = '_l2_tbt'
+            else:
+                params['level'] = ''
+        return template.format(**params)
 
 
 class OkexWSHandler(WSHandler):
