@@ -781,7 +781,7 @@ class huobidm(Exchange):
             'lever_rate': lever_rate,
             'order_price_type': type
         })
-        if type in ['limit', 'post_only']:
+        if type in ['limit', 'post_only', 'fok', 'ioc']:
             request['price'] = self.price_to_precision(symbol, price)
         response = getattr(self, method)(self.extend(request, params))
         # {
