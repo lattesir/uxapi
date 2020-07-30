@@ -6,10 +6,10 @@ import bisect
 from itertools import zip_longest, chain
 import binascii
 
-import ccxt
 import pendulum
 
 from uxapi import register_exchange
+from uxapi.exchanges.ccxt.okex import okex
 from uxapi import UXSymbol
 from uxapi import WSHandler
 from uxapi import UXPatch
@@ -21,7 +21,7 @@ from uxapi.helpers import (
 
 
 @register_exchange('okex')
-class Okex(UXPatch, ccxt.okex):
+class Okex(UXPatch, okex):
     def __init__(self, market_type, config=None):
         return super().__init__(market_type, deep_extend({
             'options': {
@@ -118,15 +118,6 @@ class Okex(UXPatch, ccxt.okex):
                 else:
                     market['deliveryTime'] = None
         return markets
-
-    def _create_order(self, uxsymbol, type, side, amount, price, params):
-        if uxsymbol.market_type in ('futures', 'swap'):
-            amount = self.amount_to_precision(self.convert_symbol(uxsymbol), amount)
-            if type == 'limit':
-                # '1': buy & open long
-                # '2': sell & open short
-                type = '1' if side == 'buy' else '2'
-        return super()._create_order(uxsymbol, type, side, amount, price, params)
 
     def order_book_merger(self):
         return OkexOrderBookMerger()
