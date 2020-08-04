@@ -81,11 +81,11 @@ class Okex(UXPatch, okex):
                     'mark_price': 'swap/mark_price:{symbol}',
                 },
                 'option': {
-                    'position': 'option/position:{currency}',
-                    'account': 'option/account:{currency}',
-                    'myorder': 'option/order:{currency}',
-                    'instruments': 'option/instruments:{currency}',
-                    'summary': 'option/summary:{currency}',
+                    'position': 'option/position:{currency}-USD',
+                    'account': 'option/account:{currency}-USD',
+                    'myorder': 'option/order:{currency}-USD',
+                    'instruments': 'option/instruments:{currency}-USD',
+                    'summary': 'option/summary:{currency}-USD',
                     'ticker': 'option/ticker:{symbol}',
                     'orderbook': 'option/depth{level}:{symbol}',
                     'trade': 'option/trade:{symbol}',
@@ -101,22 +101,22 @@ class Okex(UXPatch, okex):
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
         for market in markets:
-            contract_value = self.safe_float(market['info'], 'contract_val')
-            if contract_value:
-                market['contractValue'] = contract_value
             underlying = self.safe_string(market['info'], 'underlying')
             if underlying and underlying.endswith('-USDT'):
                 quote, base = underlying.split('-')
                 market['base'] = market['baseId'] = base
                 market['quote'] = market['quoteId'] = quote
-            if market['type'] == 'futures':
-                delivery_date = self.safe_string(market['info'], 'delivery')
-                if delivery_date:
-                    delivery_time = pendulum.from_format(delivery_date, 'YYYY-MM-DD')
-                    delivery_time = delivery_time.add(hours=self.deliveryHourUTC)
-                    market['deliveryTime'] = delivery_time.to_iso8601_string()
-                else:
-                    market['deliveryTime'] = None
+
+            contract_value = self.safe_float(market['info'], 'contract_val')
+            if contract_value:
+                market['contractValue'] = contract_value
+
+            if market['futures']:
+                delivery_time = pendulum.parse(self.safe_string(market['info'], 'delivery'))
+                delivery_time = delivery_time.add(hours=self.deliveryHourUTC)
+                market['deliveryTime'] = delivery_time.to_iso8601_string()
+            elif market['option']:
+                market['deliveryTime'] = market['info']['delivery']
         return markets
 
     def order_book_merger(self):
@@ -149,12 +149,11 @@ class Okex(UXPatch, okex):
 
         if uxsymbol.market_type == 'option':
             base = uxsymbol.base
-            quote = uxsymbol.quote
             dt = pendulum.parse(uxsymbol.contract_expiration)
             expiration = dt.format('YYMMDD')
             strike_price = uxsymbol.option_strike_price
             call_or_put = uxsymbol.option_type
-            return f'{base}-{quote}-{expiration}-{strike_price}-{call_or_put}'
+            return f'{base}-USD-{expiration}-{strike_price}-{call_or_put}'
 
         raise ValueError(f'invalid symbol: {uxsymbol}')
 

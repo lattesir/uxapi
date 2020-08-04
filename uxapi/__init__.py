@@ -41,3 +41,6 @@ from uxapi.exchanges.bitmex import (
     Bitmex, BitmexWSHandler, BitmexOrderBookMerger)
 from uxapi.exchanges.binance import (
     Binance, BinanceWSHandler, BinanceOrderBookMerger)
+from uxapi.exchanges.deribit import (
+    Deribit
+)

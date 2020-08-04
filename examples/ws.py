@@ -487,31 +487,31 @@ okex.option.orderbook:
     exchange_id: okex
     market_type: option
     datatype: orderbook.400
-    extrainfo: BTC/USD.2020-09-25.3000.C
+    extrainfo: BTC.2020-09-25.3000.C
 
 okex.option.ohlcv:
     exchange_id: okex
     market_type: option
     datatype: ohlcv.1m
-    extrainfo: EOS/USD.20200925.1_20.P
+    extrainfo: EOS.20200925.1_20.P
 
 okex.option.account:
     exchange_id: okex
     market_type: option
     datatype: account
-    extrainfo: BTC-USD
+    extrainfo: BTC
 
 okex.option.position:
     exchange_id: okex
     market_type: option
     datatype: position
-    extrainfo: BTC-USD
+    extrainfo: BTC
 
 okex.option.myorder:
     exchange_id: okex
     market_type: option
     datatype: myorder
-    extrainfo: BTC-USD
+    extrainfo: BTC
 """
 
 

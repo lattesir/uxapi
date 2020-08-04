@@ -33,9 +33,11 @@ class UXSymbol:
 
     @property
     def base_quote(self):
-        assert '/' in self.name_info[0], 'invalid format'
-        base, quote = self.name_info[0].split('/', maxsplit=1)
-        return base, quote
+        base, *quote = self.name_info[0].split('/', maxsplit=1)
+        if quote:
+            return base, quote[0]
+        else:
+            return base, base
 
     @property
     def base(self):
