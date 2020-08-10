@@ -226,18 +226,9 @@ class OkexWSHandler(WSHandler):
                 return True
         return False
 
-    async def login(self, credentials):
-        server_timestamp = await self.fetch_server_timestamp()
-        await self.send(self.login_command(server_timestamp, credentials))
-
-    async def fetch_server_timestamp(self):
-        url = 'http://www.okex.com/api/general/v3/time'
-        async with self.session.get(url) as resp:
-            result = await resp.json()
-        return result['epoch']
-
-    def login_command(self, server_timestamp, credentials):
-        payload = server_timestamp + 'GET' + '/users/self/verify'
+    def login_command(self, credentials):
+        server_timestamp = time.time()
+        payload = f'{server_timestamp}GET/users/self/verify'
         signature = hmac(
             bytes(credentials['secret'], 'utf8'),
             bytes(payload, 'utf8'),
