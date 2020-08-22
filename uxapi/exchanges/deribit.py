@@ -41,7 +41,7 @@ class Deribit(UXPatch, ccxt.deribit):
         elif uxsymbol.market_type == 'option':
             dt = pendulum.parse(uxsymbol.contract_expiration)
             return (
-                f'{uxsymbol.base}-{dt:%d}{month_names[dt.month]}{dt:%y}-'
+                f'{uxsymbol.base}-{dt.day}{month_names[dt.month]}{dt:%y}-'
                 f'{uxsymbol.option_strike_price}-{uxsymbol.option_type}'
             )
 
