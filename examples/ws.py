@@ -98,37 +98,77 @@ binance.futures.private:
     datatype: private
     extrainfo: ''
 
-#################
+###################
+# Binance Swap-USDT
+###################
+
+binance.swap-usdt.orderbook:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: orderbook
+    extrainfo: USDT/BTC
+
+binance.swap-usdt.orderbook.full:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: orderbook.full
+    extrainfo: USDT/BTC
+
+binance.swap-usdt.orderbook.250ms:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: orderbook.@250ms
+    extrainfo: USDT/BTC
+
+binance.swap-usdt.ohlcv:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: ohlcv.1m
+    extrainfo: USDT/BTC
+
+binance.swap-usdt.markPrice:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: markPrice.1s
+    extrainfo: USDT/BTC
+
+binance.swap-usdt.private:
+    exchange_id: binance
+    market_type: swap.usdt
+    datatype: private
+    extrainfo: ''
+
+##############
 # Binance Swap
-#################
+##############
 
 binance.swap.orderbook:
     exchange_id: binance
     market_type: swap
     datatype: orderbook
-    extrainfo: USDT/BTC
+    extrainfo: BTC/USD
 
 binance.swap.orderbook.full:
     exchange_id: binance
     market_type: swap
     datatype: orderbook.full
-    extrainfo: USDT/BTC
+    extrainfo: BTC/USD
 
 binance.swap.orderbook.250ms:
     exchange_id: binance
     market_type: swap
     datatype: orderbook.@250ms
-    extrainfo: USDT/BTC
+    extrainfo: BTC/USD
 
 binance.swap.ohlcv:
     exchange_id: binance
     market_type: swap
     datatype: ohlcv.1m
-    extrainfo: USDT/BTC
+    extrainfo: BTC/USD
 
-binance.swap.markPrice:
+binance.swap-usdt.markPrice:
     exchange_id: binance
-    market_type: swap
+    market_type: swap.usdt
     datatype: markPrice.1s
     extrainfo: USDT/BTC
 

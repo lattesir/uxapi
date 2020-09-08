@@ -91,12 +91,13 @@ class Binance(UXPatch, binance):
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
         for market in markets:
-            if market['type'] == 'futures':
+            if market['type'] in ('futures', 'swap'):
                 market['contractValue'] = market['info']['contractSize']
-                timestamp = self.safe_integer(market['info'], 'deliveryDate')
-                delivery_time = pendulum.from_timestamp(timestamp / 1000)
-                market['deliveryTime'] = delivery_time.to_iso8601_string()
-            elif market['type'] == 'swap':
+                if market['type'] == 'futures':
+                    timestamp = self.safe_integer(market['info'], 'deliveryDate')
+                    delivery_time = pendulum.from_timestamp(timestamp / 1000)
+                    market['deliveryTime'] = delivery_time.to_iso8601_string()
+            elif market['type'] == 'swap.usdt':
                 market['contractValue'] = 1
         return markets
 
@@ -112,9 +113,9 @@ class Binance(UXPatch, binance):
         return BinanceWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
-        if uxtopic.market_type == 'futures':
+        if uxtopic.market_type in ('futures', 'swap'):
             prefix = 'dapi'
-        elif uxtopic.market_type == 'swap':
+        elif uxtopic.market_type == 'swap.usdt':
             prefix = 'fapi'
         else:
             prefix = ''
@@ -140,7 +141,10 @@ class Binance(UXPatch, binance):
             return f'{uxsymbol.base}{uxsymbol.quote}_{delivery_time:%y%m%d}'
 
         if uxsymbol.market_type == 'swap':
-            return f'{uxsymbol.quote}/{uxsymbol.base}'
+            return f'{uxsymbol.base}{uxsymbol.quote}_PERP'
+
+        if uxsymbol.market_type == 'swap.usdt':
+            return f'{uxsymbol.quote}{uxsymbol.base}'
 
         raise ValueError(f'invalid symbol: {uxsymbol}')
 
@@ -323,11 +327,11 @@ class BinanceOrderBookMerger:
                     price_lst.insert(i, price)
                     snapshot_lst.insert(i, item)
 
-    def fetch_order_book(self, symbol):
+    def fetch_order_book(self, market_id):
         params = {
-            'symbol': symbol,
+            'symbol': market_id,
             'limit': 1000,
         }
-        market_type = self.exchange.market(symbol)['type']
-        method = self.exchange.method_by_type('publicGetDepth', market_type)
+        market = self.exchange.markets_by_id[market_id]
+        method = self.exchange.method_by_type('publicGetDepth', market['type'])
         return getattr(self.exchange, method)(params)
