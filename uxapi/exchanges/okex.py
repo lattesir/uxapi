@@ -34,12 +34,6 @@ class Okex(UXPatch, okex):
         return self.deep_extend(super().describe(), {
             'deliveryHourUTC': 8,
 
-            'has': {
-                'fetchOpenOrders': True,
-                'fetchClosedOrders': True,
-                'fetchMyTrades': False,
-            },
-
             'urls': {
                 'wsapi': 'wss://real.okex.com:8443/ws/v3',
             },
