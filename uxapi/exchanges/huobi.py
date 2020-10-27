@@ -16,7 +16,7 @@ from uxapi import WSHandler
 from uxapi import UXPatch
 from uxapi import Queue
 from uxapi import Awaitables
-from uxapi.exchanges.ccxt import huobidm
+from uxapi.exchanges.ccxt.huobidm import huobidm
 from uxapi.helpers import (
     keysort,
     hmac,
@@ -28,7 +28,7 @@ from uxapi.helpers import (
 @register_exchange('huobi')
 class Huobi:
     def __init__(self, market_type, config):
-        if market_type == 'spot':
+        if market_type in ('spot', 'margin'):
             cls = Huobipro
         else:
             cls = Huobidm
@@ -75,6 +75,18 @@ class Huobipro(UXPatch, huobipro):
             },
         })
 
+    def fetch_accounts(self, params=None):
+        accounts = super().fetch_accounts(params or {})
+        if self.market_type != 'margin':
+            return accounts
+        results = []
+        for account in accounts:
+            if account['type'] == 'super-margin':
+                results.insert(0, account)
+            else:
+                results.append(account)
+        return results
+
     def order_book_merger(self):
         return HuobiproOrderBookMerger(self)
 
@@ -83,6 +95,13 @@ class Huobipro(UXPatch, huobipro):
         for market in markets:
             market['type'] = 'spot'
         return markets
+
+    def _create_order(self, uxsymbol, type, side, amount, price=None, params=None):
+        self.load_accounts()
+        account_type = self.accounts[0]['type']
+        source = f'{account_type}-api'
+        params = self.extend({'source': source}, params or {})
+        return super()._create_order(uxsymbol, type, side, amount, price, params)
 
     def _cancel_orders(self, ids, uxsymbol, params):
         params = params or {}
@@ -96,8 +115,7 @@ class Huobipro(UXPatch, huobipro):
         request = {}
         if not self.safe_string(params, 'account-id'):
             self.loadAccounts()
-            accounts = {item['type']: item['id'] for item in self.accounts}
-            request['account-id'] = self.safe_string(accounts, 'spot')
+            request['account-id'] = self.accounts[0]['id']
         if not self.safe_string(params, 'symbol'):
             if uxsymbol:
                 request['symbol'] = self.convert_symbol(uxsymbol)

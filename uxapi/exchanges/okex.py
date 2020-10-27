@@ -23,9 +23,10 @@ from uxapi.helpers import (
 @register_exchange('okex')
 class Okex(UXPatch, okex):
     def __init__(self, market_type, config=None):
+        fetch_market_option = ['spot'] if market_type == 'margin' else [market_type]
         return super().__init__(market_type, deep_extend({
             'options': {
-                'fetchMarkets': [market_type],
+                'fetchMarkets': fetch_market_option,
                 'defaultType': market_type,
             }
         }, config or {}))
@@ -120,7 +121,7 @@ class Okex(UXPatch, okex):
         return OkexWSHandler(self, self.urls['wsapi'], topic_set)
 
     def convert_symbol(self, uxsymbol):
-        if uxsymbol.market_type == 'spot':
+        if uxsymbol.market_type in ['spot', 'margin']:
             return uxsymbol.name
 
         if uxsymbol.market_type == 'swap':

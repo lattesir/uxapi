@@ -236,7 +236,7 @@ class huobidm(Exchange):
                 },
             },
             'options': {
-                'defaultLeverage': 10,
+                'leverage': 10,
                 'defaultType': 'futures',
             }
         })
@@ -761,7 +761,7 @@ class huobidm(Exchange):
         market = self.market(symbol)
         method = market['type'] + 'PostOrder'
         params = params or {}
-        lever_rate = params.get('lever_rate', self.options['defaultLeverage'])
+        lever_rate = params.get('lever_rate', self.options['leverage'])
         if type == 'market':
             type = 'optimal_20'
         if market['type'] == 'futures':

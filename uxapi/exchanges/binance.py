@@ -131,7 +131,7 @@ class Binance(UXPatch, binance):
             return wstype
 
     def convert_symbol(self, uxsymbol):
-        if uxsymbol.market_type == 'spot':
+        if uxsymbol.market_type in ('spot', 'margin'):
             return uxsymbol.name
 
         if uxsymbol.market_type == 'futures':

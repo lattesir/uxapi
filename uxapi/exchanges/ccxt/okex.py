@@ -1862,7 +1862,9 @@ class okex(Exchange):
             })
             method = 'optionPostOrder'
         else:
-            marginTrading = self.safe_string(params, 'margin_trading', '1')  # 1 = spot, 2 = margin
+            defaultType = self.safe_string(self.options, 'defaultType')
+            marginTrading = '2' if defaultType == 'margin' else '1'
+            marginTrading = self.safe_string(params, 'margin_trading', marginTrading)  # 1 = spot, 2 = margin
             request = self.extend(request, {
                 'side': side,
                 'type': type,  # limit/market
