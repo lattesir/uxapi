@@ -272,13 +272,8 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
 
 class Huobidm(UXPatch, huobidm):
     def __init__(self, market_type, config=None):
-        if market_type == 'index':
-            market_type = 'futures'
         return super().__init__(market_type, extend({
-            'options': {
-                'fetchMarkets': market_type,
-                'defaultType': market_type,
-            }
+            'options': {'defaultType': market_type}
         }, config or {}))
 
     def describe(self):
@@ -295,11 +290,13 @@ class Huobidm(UXPatch, huobidm):
                 'wsapi': {
                     'market': {
                         'futures': 'wss://api.hbdm.com/ws',
-                        'swap': 'wss://api.hbdm.com/swap-ws'
+                        'swap': 'wss://api.hbdm.com/swap-ws',
+                        'swap.usdt': 'wss://api.hbdm.com/linear-swap-ws',
                     },
                     'private': {
                         'futures': 'wss://api.hbdm.com/notification',
-                        'swap': 'wss://api.hbdm.com/swap-notification'
+                        'swap': 'wss://api.hbdm.com/swap-notification',
+                        'swap.usdt': 'wss://api.hbdm.com/linear-swap-notification',
                     },
                     'index': 'wss://api.hbdm.com/ws_index',
                 },
@@ -307,22 +304,30 @@ class Huobidm(UXPatch, huobidm):
 
             'wsapi': {
                 'market': {
-                    'ticker': 'market.{symbol}.detail',
+                    'ohlcv': 'market.{symbol}.kline.{period}',
                     'orderbook': 'market.{symbol}.depth.{level}',
                     'high_freq': 'market.{symbol}.depth.size_{level}.high_freq?data_type={data_type}',  # noqa: E501
-                    'ohlcv': 'market.{symbol}.kline.{period}',
+                    'ticker': 'market.{symbol}.detail',
+                    'bbo': 'market.{symbol}.bbo',
                     'trade': 'market.{symbol}.trade.detail',
                 },
                 'private': {
-                    'myorder': 'orders.{currency}',
-                    'position': 'positions.{currency}',
-                    'accounts': 'accounts.{currency}',
-                    'liquidationOrders': 'liquidationOrders.{currency}',
-                    'funding_rate': 'funding_rate.{currency}',
+                    'myorder': 'orders.{symbol}',
+                    'accounts': 'accounts.{symbol}',
+                    'position': 'positions.{symbol}',
+                    'matchOrders': 'matchOrders.{symbol}',
+                    'trigger_order': 'trigger_order.{symbol}',
                 },
                 'index': {
-                    'ohlcv': 'market.{symbol}.index.{period}',
-                    'basis': 'market.{symbol}.basis.{period}.{basis_price_type}'
+                    'index': 'market.{symbol}.index.{period}',                     # futures
+                    'premium_index': 'market.{symbol}.premium_index.{period}',     # swap
+                    'estimated_rate': 'market.{symbol}.estimated_rate.{period}',   # swap
+                    'basis': 'market.{symbol}.basis.{period}.{basis_price_type}',
+                },
+                'public': {
+                    'liquidation_orders': 'public.{symbol}.liquidation_orders',
+                    'funding_rate': 'public.{symbol}.funding_rate',  # swap
+                    'contract_info': 'public.{symbol}.contract_info',
                 }
             },
         })
@@ -346,46 +351,52 @@ class Huobidm(UXPatch, huobidm):
         return markets
 
     def convert_symbol(self, uxsymbol):
-        if uxsymbol.market_type == 'futures':
-            return f'{uxsymbol.base}_{uxsymbol.contract_expiration}'
+        market_type = uxsymbol.market_type
+        base, quote = uxsymbol.base_quote
+        if market_type == 'futures':
+            return f'{base}_{uxsymbol.contract_expiration}'
+        elif market_type == 'swap':
+            return f'{base}-{quote}'
+        elif market_type == 'swap.usdt':
+            return f'{quote}-{base}'
         else:
-            return f'{uxsymbol.base}-{uxsymbol.quote}'
+            raise ValueError(f'invalid symbol: {uxsymbol}')
 
     def convert_topic(self, uxtopic):
         wsapi_type = self.wsapi_type(uxtopic)
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
+
         params = {}
-        if wsapi_type == 'index':
+        if wsapi_type in ('private', 'public'):
             params['symbol'] = uxtopic.extrainfo
+
+        elif wsapi_type == 'index':
+            params['symbol'] = uxtopic.extrainfo
+            params['period'] = self.timeframes[subtypes[0]]
+            if maintype == 'basis':
+                params['basis_price_type'] = subtypes[1]
+
         elif wsapi_type == 'market':
             uxsymbol = UXSymbol(uxtopic.exchange_id, uxtopic.market_type,
                                 uxtopic.extrainfo)
             params['symbol'] = self.market_id(uxsymbol)
-        else:  # 'private'
-            if uxtopic.market_type == 'futures':
-                params['currency'] = uxtopic.extrainfo.lower()
-            else:
-                params['currency'] = uxtopic.extrainfo + '-USD'
-
-        if maintype == 'orderbook':
-            if not subtypes:
-                params['level'] = 'step0'
-            elif subtypes[0] == 'full':
-                maintype = 'high_freq'
-                params['level'] = '150'
-                params['data_type'] = 'incremental'
-            else:
+            if maintype == 'orderbook':
+                if not subtypes:
+                    params['level'] = 'step0'
+                elif subtypes[0] == 'full':
+                    maintype = 'high_freq'
+                    params['level'] = '150'
+                    params['data_type'] = 'incremental'
+                else:
+                    params['level'] = subtypes[0]
+            elif maintype == 'high_freq':
+                assert subtypes and len(subtypes) == 2
                 params['level'] = subtypes[0]
-        elif maintype == 'high_freq':
-            assert subtypes and len(subtypes) == 2
-            params['level'] = subtypes[0]
-            params['data_type'] = subtypes[1]
-        elif maintype == 'ohlcv':
-            params['period'] = self.timeframes[subtypes[0]]
-        elif maintype == 'basis':
-            params['period'] = self.timeframes[subtypes[0]]
-            params['basis_price_type'] = subtypes[1]
+                params['data_type'] = subtypes[1]
+            elif maintype == 'ohlcv':
+                params['period'] = self.timeframes[subtypes[0]]
+
         template = self.wsapi[wsapi_type][maintype]
         return template.format(**params)
 
@@ -396,16 +407,16 @@ class Huobidm(UXPatch, huobidm):
         wsapi_type = wsapi_types.pop()
         if wsapi_type == 'index':
             wsurl = self.urls['wsapi'][wsapi_type]
+        elif wsapi_type == 'public':
+            wsurl = self.urls['wsapi']['private'][self.market_type]
         else:
             wsurl = self.urls['wsapi'][wsapi_type][self.market_type]
         return HuobiWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
-        if uxtopic.market_type == 'index':
-            return 'index'
-        for type in ('market', 'private'):
-            if uxtopic.maintype in self.wsapi[type]:
-                return type
+        for key in self.wsapi:
+            if uxtopic.maintype in self.wsapi[key]:
+                return key
         raise ValueError('invalid topic')
 
 
@@ -614,7 +625,7 @@ class HuobiWSHandler(WSHandler):
     def subscribe_commands(self, topics):
         commands = []
         for ch, params in topics.items():
-            if self.wsapi_type == 'private':
+            if self.wsapi_type in ('private', 'public'):
                 if self.market_type == 'spot':
                     request = {'action': 'sub', 'ch': ch}
                 else:

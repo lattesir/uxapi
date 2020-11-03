@@ -330,11 +330,41 @@ huobi.futures.ohlcv:
     datatype: ohlcv.1m
     extrainfo: BTC/USD.CQ
 
+huobi.futures.bbo:
+    exchange_id: huobi
+    market_type: futures
+    datatype: bbo
+    extrainfo: BTC/USD.CQ
+
 huobi.futures.trade:
     exchange_id: huobi
     market_type: futures
     datatype: trade
     extrainfo: BTC/USD.CQ
+
+huobi.futures.index:
+    exchange_id: huobi
+    market_type: futures
+    datatype: index.1m
+    extrainfo: BTC-USD
+
+huobi.futures.basis:
+    exchange_id: huobi
+    market_type: futures
+    datatype: basis.1m.open
+    extrainfo: BTC-CQ
+
+huobi.futures.liquidation_orders:
+    exchange_id: huobi
+    market_type: futures
+    datatype: liquidation_orders
+    extrainfo: BTC
+
+huobi.futures.contract_info:
+    exchange_id: huobi
+    market_type: futures
+    datatype: contract_info
+    extrainfo: BTC
 
 huobi.futures.myorder:
     exchange_id: huobi
@@ -364,34 +394,106 @@ huobi.swap.orderbook.full:
     datatype: orderbook.full
     extrainfo: BTC/USD
 
-huobi.swap.myorder:
+huobi.swap.premium_index:
     exchange_id: huobi
     market_type: swap
-    datatype: myorder
-    extrainfo: BTC
+    datatype: premium_index.1m
+    extrainfo: BTC-USD
+
+huobi.swap.estimated_rate:
+    exchange_id: huobi
+    market_type: swap
+    datatype: estimated_rate.1m
+    extrainfo: BTC-USD
+
+huobi.swap.liquidation_orders:
+    exchange_id: huobi
+    market_type: swap
+    datatype: liquidation_orders
+    extrainfo: "*"
 
 huobi.swap.funding_rate:
     exchange_id: huobi
     market_type: swap
     datatype: funding_rate
-    extrainfo: BTC
-
-
-################
-# Huobi Index
-################
-
-huobi.index.ohlcv:
-    exchange_id: huobi
-    market_type: index
-    datatype: ohlcv.1m
     extrainfo: BTC-USD
 
-huobi.index.basis:
+huobi.swap.myorder:
     exchange_id: huobi
-    market_type: index
+    market_type: swap
+    datatype: myorder
+    extrainfo: BTC-USD
+
+huobi.swap.accounts:
+    exchange_id: huobi
+    market_type: swap
+    datatype: accounts
+    extrainfo: BTC-USD
+
+
+#################
+# Huobi Swap-USDT
+#################
+
+huobi.swapusdt.orderbook:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: orderbook
+    extrainfo: USDT/BTC
+
+huobi.swapusdt.ohlcv:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: ohlcv.1m
+    extrainfo: USDT/BTC
+
+huobi.swapusdt.premium_index:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: premium_index.1m
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.estimated_rate:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: estimated_rate.1m
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.basis:
+    exchange_id: huobi
+    market_type: swap.usdt
     datatype: basis.1m.open
-    extrainfo: BTC_CW
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.liquidation_orders:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: liquidation_orders
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.funding_rate:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: funding_rate
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.myorder:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: myorder
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.accounts:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: accounts
+    extrainfo: BTC-USDT
+
+huobi.swapusdt.position:
+    exchange_id: huobi
+    market_type: swap.usdt
+    datatype: position
+    extrainfo: BTC-USDT
 
 #############
 # Okex Spot

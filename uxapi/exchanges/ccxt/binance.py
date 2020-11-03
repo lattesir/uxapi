@@ -648,7 +648,7 @@ class binance(Exchange):
         result = []
         for i in range(0, len(markets)):
             market = markets[i]
-            spot = futures = swap = False
+            margin = spot = futures = swap = False
             marketType = None
             if 'maintMarginPercent' in market:
                 contract_type = market.get('contractType')
