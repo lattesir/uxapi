@@ -59,6 +59,16 @@ binance.spot.private:
     extrainfo: BTC/USDT
 
 ##################
+# Binance Margin
+##################
+
+binance.margin.private:
+    exchange_id: binance
+    market_type: margin
+    datatype: private
+    extrainfo: BTC/USDT
+
+##################
 # Binance Futures
 ##################
 

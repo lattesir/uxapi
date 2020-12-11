@@ -214,7 +214,9 @@ class BinanceWSHandler(WSHandler):
 
     async def request_listen_key(self, method, params=None):
         if self.wsapi_type == 'private':
-            baseurl = self.exchange.urls['api']['public']
+            baseurl = self.exchange.urls['api']['private']
+            if self.exchange.market_type == 'margin':
+                baseurl = self.exchange.urls['api']['sapi']
             url = f'{baseurl}/userDataStream'
         elif self.wsapi_type in ('dapiPrivate', 'fapiPrivate'):
             baseurl = self.exchange.urls['api'][self.wsapi_type]
