@@ -262,7 +262,7 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
             except asyncio.CancelledError:
                 pass
 
-        self.wsreq_task = Awaitables.default().create_task(run(), 'wsreq')
+        self.wsreq_task = Awaitables.default().create_task(run())
 
     def stop_wsreq(self):
         self.wsreq_task.cancel()
