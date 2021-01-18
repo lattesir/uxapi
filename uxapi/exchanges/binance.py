@@ -92,7 +92,7 @@ class Binance(UXPatch, binance):
         markets = super()._fetch_markets(params)
         for market in markets:
             if market['type'] in ('futures', 'swap'):
-                market['contractValue'] = market['info']['contractSize']
+                market['contractValue'] = market['info'].get('contractSize')
                 if market['type'] == 'futures':
                     timestamp = self.safe_integer(market['info'], 'deliveryDate')
                     delivery_time = pendulum.from_timestamp(timestamp / 1000)
