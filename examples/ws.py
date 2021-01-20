@@ -282,6 +282,18 @@ huobi.spot.orderbook.full:
     datatype: orderbook.full
     extrainfo: BTC/USDT
 
+huobi.spot.refresh:
+    exchange_id: huobi
+    market_type: spot
+    datatype: refresh.5
+    extrainfo: BTC/USDT
+
+huobi.spot.mbp:
+    exchange_id: huobi
+    market_type: spot
+    datatype: mbp.5
+    extrainfo: BTC/USDT
+
 huobi.spot.ohlcv:
     exchange_id: huobi
     market_type: spot

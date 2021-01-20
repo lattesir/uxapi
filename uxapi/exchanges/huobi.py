@@ -53,6 +53,9 @@ class Huobipro(UXPatch, huobipro):
             'urls': {
                 'wsapi': {
                     'market': 'wss://api.huobi.pro/ws',
+                    'market_aws': 'wss://api-aws.huobi.pro/ws',
+                    'mbp': 'wss://api.huobi.pro/feed',
+                    'mbp_aws': 'wss://api-aws.huobi.pro/feed',
                     'private': 'wss://api.huobi.pro/ws/v2',
                     'private_aws': 'wss://api-aws.huobi.pro/ws/v2',
                 },
@@ -63,9 +66,12 @@ class Huobipro(UXPatch, huobipro):
                     'ticker': 'market.{symbol}.detail',
                     'ohlcv': 'market.{symbol}.kline.{period}',
                     'orderbook': 'market.{symbol}.depth.{level}',
-                    'mbp': 'market.{symbol}.mbp.{level}',
+                    'refresh': 'market.{symbol}.mbp.refresh.{level}',
                     'trade': 'market.{symbol}.trade.detail',
                     'bbo': 'market.{symbol}.bbo',
+                },
+                'mbp': {
+                    'mbp': 'market.{symbol}.mbp.{level}',
                 },
                 'private': {
                     'myorder': 'orders#{symbol}',
@@ -126,7 +132,7 @@ class Huobipro(UXPatch, huobipro):
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
         wsapi_type = self.wsapi_type(uxtopic)
-        template = self.wsapi[wsapi_type][maintype]
+        template = self.wsapi[wsapi_type].get(maintype)
 
         if maintype == 'accounts':
             mode = subtypes[0] if subtypes else '1'
@@ -139,13 +145,13 @@ class Huobipro(UXPatch, huobipro):
             params['symbol'] = '*'
         else:
             params['symbol'] = self.market_id(uxsymbol)
-        if maintype in ['orderbook', 'mbp']:
+        if maintype in ['orderbook', 'refresh', 'mbp']:
             if not subtypes:
                 assert maintype == 'orderbook'
                 params['level'] = 'step0'
             elif subtypes[0] == 'full':
                 assert maintype == 'orderbook'
-                template = self.wsapi[wsapi_type]['mbp']
+                template = self.wsapi['mbp']['mbp']
                 params['level'] = '150'
             else:
                 params['level'] = subtypes[0]
@@ -162,9 +168,13 @@ class Huobipro(UXPatch, huobipro):
         return HuobiWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
+        if uxtopic.datatype == 'orderbook.full':
+            return 'mbp'
+
         for type in self.wsapi:
             if uxtopic.maintype in self.wsapi[type]:
                 return type
+
         raise ValueError('invalid topic')
 
 
@@ -248,13 +258,15 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
             raise RuntimeError('seqNum error')
         snapshot_tick['seqNum'] = patch_tick['seqNum']
         snapshot_tick['ts'] = patch['ts']
-        self.merge_asks_bids(snapshot_tick['asks'], patch_tick['asks'],
-                             self.prices['asks'], False)
-        self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
-                             self.prices['bids'], True)
+        if 'asks' in patch_tick:
+            self.merge_asks_bids(snapshot_tick['asks'], patch_tick['asks'],
+                                self.prices['asks'], False)
+        if 'bids' in patch_tick:
+            self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
+                                self.prices['bids'], True)
 
     def start_wsreq(self):
-        self.wsreq = HuobiWSReq(self.exchange, 'market')
+        self.wsreq = HuobiWSReq(self.exchange, 'mbp')
 
         async def run():
             try:
