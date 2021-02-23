@@ -284,7 +284,7 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
 
 class Huobidm(UXPatch, huobidm):
     def __init__(self, market_type, config=None):
-        return super().__init__(market_type, extend({
+        return super().__init__(market_type, self.deep_extend({
             'options': {'defaultType': market_type}
         }, config or {}))
 
@@ -325,10 +325,15 @@ class Huobidm(UXPatch, huobidm):
                 },
                 'private': {
                     'myorder': 'orders.{symbol}',
+                    'myorder_cross': 'orders_cross.{symbol}',
                     'accounts': 'accounts.{symbol}',
+                    'accounts_cross': 'accounts_cross.{symbol}',
                     'position': 'positions.{symbol}',
+                    'position_cross': 'positions_cross.{symbol}',
                     'matchOrders': 'matchOrders.{symbol}',
+                    'matchOrders_cross': 'matchOrders_cross.{symbol}',
                     'trigger_order': 'trigger_order.{symbol}',
+                    'trigger_order_cross': 'trigger_order_cross.{symbol}',
                 },
                 'index': {
                     'index': 'market.{symbol}.index.{period}',                     # futures
@@ -378,6 +383,11 @@ class Huobidm(UXPatch, huobidm):
         wsapi_type = self.wsapi_type(uxtopic)
         maintype = uxtopic.maintype
         subtypes = uxtopic.subtypes
+
+        if (uxtopic.market_type == 'swap.usdt'
+                and self.options['marginMode'] == 'cross'
+                and maintype in ('myorder', 'accounts', 'position')):
+            maintype += '_cross'
 
         params = {}
         if wsapi_type in ('private', 'public'):

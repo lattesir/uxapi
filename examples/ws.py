@@ -509,7 +509,7 @@ huobi.swapusdt.accounts:
     exchange_id: huobi
     market_type: swap.usdt
     datatype: accounts
-    extrainfo: BTC-USDT
+    extrainfo: USDT
 
 huobi.swapusdt.position:
     exchange_id: huobi

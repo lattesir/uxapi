@@ -220,38 +220,87 @@ class huobidm(Exchange):
                     ],
 
                     'post': [
-                        'account_info',                 # 获取用户账户信息
-                        'position_info',                # 获取用户持仓信息
-                        'account_position_info',        # 查询用户账户和持仓信息
-                        'sub_account_list',             # 查询母账户下所有子账户资产信息
-                        'sub_account_info',             # 查询单个子账户资产信息
-                        'sub_position_info',            # 查询单个子账户持仓信息
+                        'account_info',                 # 获取用户账户信息(逐仓)
+                        'cross_account_info',           # 获取用户账户信息(全仓)
+                        'position_info',                # 获取用户持仓信息(逐仓)
+                        'cross_position_info',          # 获取用户持仓信息(全仓)
+                        'account_position_info',        # 查询用户账户和持仓信息(逐仓)
+                        'cross_account_position_info',  # 查询用户账户和持仓信息(全仓)
+                        'swap_sub_auth',                # 批量设置子账户交易权限
+                        'sub_account_list',             # 查询母账户下所有子账户资产信息(逐仓)
+                        'cross_sub_account_list',       # 查询母账户下所有子账户资产信息(全仓)
+                        'sub_account_info_list',        # 批量获取子账户资产信息(逐仓)
+                        'cross_sub_account_info_list',  # 批量获取子账户资产信息(全仓)
+                        'sub_account_info',             # 查询单个子账户资产信息(逐仓)
+                        'cross_sub_account_info',       # 查询单个子账户资产信息(全仓)
+                        'sub_position_info',            # 查询单个子账户持仓信息(逐仓)
+                        'cross_sub_position_info',      # 查询单个子账户持仓信息(全仓)
                         'financial_record',             # 查询用户财务记录
-                        'available_level_rate',         # 查询用户可用杠杆倍数
+                        'financial_record_exact',       # 组合查询用户财务记录
+                        'user_settlement_records',        # 查询用户结算记录(逐仓)
+                        'cross_user_settlement_records',  # 查询用户结算记录(全仓)
+                        'available_level_rate',         # 查询用户可用杠杆倍数(逐仓)
+                        'cross_available_level_rate',   # 查询用户可用杠杆倍数(全仓)
                         'order_limit',                  # 查询用户当前的下单量限制
                         'fee',                          # 查询用户当前的手续费费率
-                        'transfer_limit',               # 查询用户当前的划转限制
-                        'position_limit',               # 用户持仓量限制的查询
+                        'transfer_limit',               # 查询用户当前的划转限制(逐仓)
+                        'cross_transfer_limit',         # 查询用户当前的划转限制(全仓)
+                        'position_limit',               # 用户持仓量限制的查询(逐仓)
+                        'cross_position_limit',         # 用户持仓量限制的查询(全仓)
                         'master_sub_transfer',          # 母子账户划转
                         'master_sub_transfer_record',   # 获取母账户下的所有母子账户划转记录
                         'transfer_inner',               # 同账号不同保证金账户的划转
 
-                        'order',                        # 合约下单
-                        'batchorder',                   # 合约批量下单
-                        'cancel',                       # 撤销订单
-                        'cancelall',                    # 全部撤单
-                        'switch_lever_rate',            # 切换杠杆
-                        'order_info',                   # 获取合约订单信息
-                        'order_detail',                 # 获取订单明细信息
-                        'openorders',                   # 获取合约当前未成交委托
-                        'hisorders',                    # 获取合约历史委托
-                        'matchresults',                 # 获取历史成交记录
-                        'lightning_close_position',     # 闪电平仓下单
-                        'trigger_order',                # 合约计划委托下单
-                        'trigger_cancel',               # 合约计划委托撤单
-                        'trigger_cancelall',            # 合约计划委托全部撤单
-                        'trigger_openorders',           # 获取计划委托当前委托
-                        'trigger_hisorders',            # 获取计划委托历史委托
+                        'order',                        # 合约下单(逐仓)
+                        'cross_order',                  # 合约下单(全仓)
+                        'batchorder',                   # 合约批量下单(逐仓)
+                        'cross_batchorder',             # 合约批量下单(全仓)
+                        'cancel',                       # 撤销订单(逐仓)
+                        'cross_cancel',                 # 撤销订单(全仓)
+                        'cancelall',                    # 全部撤单(逐仓)
+                        'cross_cancelall',              # 全部撤单(全仓)
+                        'switch_lever_rate',            # 切换杠杆(逐仓)
+                        'cross_switch_lever_rate',      # 切换杠杆(全仓)
+                        'order_info',                   # 获取合约订单信息(逐仓)
+                        'cross_order_info',             # 获取合约订单信息(全仓)
+                        'order_detail',                 # 获取订单明细信息(逐仓)
+                        'cross_order_detail',           # 获取订单明细信息(全仓)
+                        'openorders',                   # 获取合约当前未成交委托(逐仓)
+                        'cross_openorders',             # 获取合约当前未成交委托(全仓)
+                        'hisorders',                    # 获取合约历史委托(逐仓)
+                        'cross_hisorders',              # 获取合约历史委托(全仓)
+                        'hisorders_exact',              # 组合查询合约历史委托(逐仓)
+                        'cross_hisorders_exact',        # 组合查询合约历史委托(全仓)
+                        'matchresults',                 # 获取历史成交记录(逐仓)
+                        'cross_matchresults',           # 获取历史成交记录(全仓)
+                        'matchresults_exact',           # 组合查询用户历史成交记录(逐仓)
+                        'cross_matchresults_exact',     # 组合查询用户历史成交记录(全仓)
+                        'lightning_close_position',         # 闪电平仓下单(逐仓)
+                        'cross_lightning_close_position',   # 闪电平仓下单(全仓)
+
+                        'trigger_order',                # 合约计划委托下单(逐仓)
+                        'cross_trigger_order',          # 合约计划委托下单(全仓)
+                        'trigger_cancel',               # 合约计划委托撤单(逐仓)
+                        'cross_trigger_cancel',         # 合约计划委托撤单(全仓)
+                        'trigger_cancelall',            # 合约计划委托全部撤单(逐仓)
+                        'cross_trigger_cancelall',      # 合约计划委托全部撤单(全仓)
+                        'trigger_openorders',           # 获取计划委托当前委托(逐仓)
+                        'cross_trigger_openorders',     # 获取计划委托当前委托(全仓)
+                        'trigger_hisorders',            # 获取计划委托历史委托(逐仓)
+                        'cross_trigger_hisorders',      # 获取计划委托历史委托(全仓)
+
+                        'tpsl_order',                   # 对仓位设置止盈止损订单(逐仓)
+                        'cross_tpsl_order',             # 对仓位设置止盈止损订单(全仓)
+                        'tpsl_cancel',                  # 止盈止损订单撤单(逐仓)
+                        'cross_tpsl_cancel',            # 止盈止损订单撤单(全仓)
+                        'tpsl_cancelall',               # 止盈止损订单全部撤单(逐仓)
+                        'cross_tpsl_cancelall',         # 止盈止损订单全部撤单(全仓)
+                        'tpsl_openorders',              # 查询止盈止损订单当前委托(逐仓)
+                        'cross_tpsl_openorders',        # 查询止盈止损订单当前委托(全仓)
+                        'tpsl_hisorders',               # 查询止盈止损订单历史委托(逐仓)
+                        'cross_tpsl_hisorders',         # 查询止盈止损订单历史委托(全仓)
+                        'relation_tpsl_order',          # 查询开仓单关联的止盈止损订单详情(逐仓)
+                        'cross_relation_tpsl_order',    # 查询开仓单关联的止盈止损订单详情(全仓)
                     ],
                 },
 
@@ -315,18 +364,20 @@ class huobidm(Exchange):
             'options': {
                 'leverage': 10,
                 'defaultType': 'futures',
+                'marginMode': 'cross', # 'cross' or 'isolated'
             }
         })
 
-    def method_by_type(self, method, type):
-        prefix = type.replace('.', '')
-        return f'{prefix}{method}'
+    def find_method(self, market_type, method):
+        api = market_type.replace('.', '')
+        method = f'{api}{method}'
+        return getattr(self, method)
 
     def fetch_markets(self, params={}):
         defaultType = self.safe_string_2(self.options, 'fetchMarkets', 'defaultType', 'futures')
         type = self.safe_string(params, 'type', defaultType)
-        method = self.method_by_type('GetContractInfo', type)
-        response = getattr(self, method)(params)
+        method = self.find_method(type, 'GetContractInfo')
+        response = method(params)
         markets = self.safe_value(response, 'data')
         if not markets:
             raise ExchangeError(self.id + f' {method} returned empty response')
@@ -401,12 +452,12 @@ class huobidm(Exchange):
     def fetch_ticker(self, symbol, params=None):
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('GetMarketDetailMerged', market['type'])
+        method = self.find_method(market['type'], 'GetMarketDetailMerged')
         if market['type'] == 'futures':
             request = {'symbol': market['id']}
         else:
             request = {'contract_code': market['id']}
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         return self.parse_ticker(response['tick'], market)
 
     def parse_ticker(self, ticker, market):
@@ -475,13 +526,13 @@ class huobidm(Exchange):
     def fetch_order_book(self, symbol, limit=None, params=None):
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('GetMarketDepth', market['type'])
+        method = self.find_method(market['type'], 'GetMarketDepth')
         if market['type'] == 'futures':
             request = {'symbol': market['id']}
         else:
             request = {'contract_code': market['id']}
         request['type'] = 'step0'
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "asks": [
         #     [10266.11, 6],
@@ -514,7 +565,7 @@ class huobidm(Exchange):
                     limit=1000, params=None):
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('GetMarketHistoryKline', market['type'])
+        method = self.find_method(market['type'], 'GetMarketHistoryKline')
         if market['type'] == 'futures':
             request = {'symbol': market['id']}
         else:
@@ -523,7 +574,7 @@ class huobidm(Exchange):
             'period': self.timeframes[timeframe],
             'size': limit or 1000
         })
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "ch": "market.BTC_CQ.kline.1min",
         #   "data": [
@@ -556,13 +607,13 @@ class huobidm(Exchange):
     def fetch_trades(self, symbol, since=None, limit=1000, params=None):
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('GetMarketHistoryTrade', market['type'])
+        method = self.find_method(market['type'], 'GetMarketHistoryTrade')
         if market['type'] == 'futures':
             request = {'symbol': market['id']}
         else:
             request = {'contract_code': market['id']}
         request['size'] = limit or 1000
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "ch": "market.BTC_CQ.trade.detail",
         #   "data": [
@@ -598,7 +649,13 @@ class huobidm(Exchange):
             raise ArgumentsRequired(self.id + ' fetchMyTrades requires a symbol argument')
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('PostMatchresults', market['type'])
+
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}Matchresults')
+
         if market['type'] == 'futures':
             request = {
                 'symbol': market['base'],
@@ -614,7 +671,7 @@ class huobidm(Exchange):
             'page_index': 1,
             'page_size': 50
         })
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "data": {
         #     "current_page": 1,
@@ -692,14 +749,20 @@ class huobidm(Exchange):
             raise ArgumentsRequired(self.id + ' fetchOpenOrders requires a symbol argument')
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('PostOrderInfo', market['type'])
+
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}OrderInfo')
+
         if market['type'] == 'futures':
             request = {'symbol': market['base']}
         else:
             request = {'contract_code': market['id']}
         if ids:
             request['order_id'] = ','.join(ids)
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data": [
@@ -738,7 +801,13 @@ class huobidm(Exchange):
             raise ArgumentsRequired(self.id + ' fetchOpenOrders requires a symbol argument')
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('PostOpenorders', market['type'])
+
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}Openorders')
+
         if market['type'] == 'futures':
             request = {'symbol': market['base']}
         else:
@@ -747,7 +816,7 @@ class huobidm(Exchange):
             'page_index': 1,
             'page_size': 50,
         })
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data":{
@@ -848,7 +917,13 @@ class huobidm(Exchange):
     def create_order(self, symbol, type, side, amount, price=None, params=None):
         self.load_markets()
         market = self.market(symbol)
-        method = self.method_by_type('PostOrder', market['type'])
+        
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}Order')
+
         params = params or {}
         lever_rate = params.get('lever_rate', self.options['leverage'])
         if type == 'market':
@@ -872,7 +947,7 @@ class huobidm(Exchange):
         })
         if type in ['limit', 'post_only', 'fok', 'ioc']:
             request['price'] = self.price_to_precision(symbol, price)
-        response = getattr(self, method)(self.extend(request, params))
+        response = method(self.extend(request, params))
         # {
         #   "status": "ok",
         #   "data": {
@@ -912,14 +987,20 @@ class huobidm(Exchange):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelOrderByIds requires a symbol argument')
         market = self.market(symbol)
-        method = self.method_by_type('PostCancel', market['type'])
+
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}Cancel')
+
         if market['type'] == 'futures':
             request = {'symbol': market['base']}
         else:
             request = {'contract_code': market['id']}
         if ids:
             request['order_id'] = ','.join(ids)
-        response = getattr(self, method)(self.extend(request, params or {}))
+        response = method(self.extend(request, params or {}))
         # {
         #   "status": "ok",
         #   "data": {
@@ -948,7 +1029,13 @@ class huobidm(Exchange):
         if symbol is None:
             raise ArgumentsRequired(self.id + ' cancelAllOrders requires a symbol argument')
         market = self.market(symbol)
-        method = self.method_by_type('PostCancelall', market['type'])
+
+        if market['type'] == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(market['type'], f'Post{margin_mode}Cancelall')
+
         if market['type'] == 'futures':
             request = {
                 'symbol': market['base'],
@@ -958,7 +1045,7 @@ class huobidm(Exchange):
             request = {
                 'contract_code': market['id']
             }
-        return getattr(self, method)(self.extend(request, params or {}))
+        return method(self.extend(request, params or {}))
 
     def fetch_balance(self, params=None):
         self.load_markets()
@@ -969,8 +1056,17 @@ class huobidm(Exchange):
                 f"{self.id} fetchBalance requires a type parameter"
                 f"(one of 'futures', 'swap', 'swap.usdt')"
             )
-        method = self.method_by_type('PostAccountInfo', type)
-        response = getattr(self, method)(params or {})
+        
+        if type == 'swap.usdt' and self.options['marginMode'] == 'cross':
+            margin_mode = 'Cross'
+        else:
+            margin_mode = ''
+        method = self.find_method(type, f'Post{margin_mode}AccountInfo')
+        response = method(params or {})
+        return self.parse_balance(response)
+
+    def parse_balance(self, response):
+        # futures/swap-coin/swap-usdt isolated mode
         # {
         #   "status": "ok",
         #   "data": [
@@ -979,21 +1075,39 @@ class huobidm(Exchange):
         #        "margin_balance": 1,
         #        "margin_position": 0,
         #        "margin_frozen": 3.33,
-        #        "margin_available": 0.34,
-        #        "profit_real": 3.45,
-        #        "profit_unreal": 7.45,
-        #        "withdraw_available":4.0989898,
-        #        "risk_rate": 100,
-        #        "liquidation_price": 100,
-        #        "adjust_factor": 0.1
+        #        ...
         #     },
         #     ...
         #   ],
         #   "ts":158797866555
         # }
+
+        # swap-usdt cross mode
+        # {
+        #     "status":"ok",
+        #     "data":[
+        #         {
+        #             "margin_mode":"cross",
+        #             "margin_account":"USDT",
+        #             "margin_asset":"USDT",
+        #             "margin_balance":0.000000549410817836,
+        #             ...
+        #             "contract_detail":[
+        #                 {
+        #                     "symbol":"BTC",
+        #                     "contract_code":"BTC-USDT",
+        #                     ...
+        #                 },
+        #                 ...
+        #             ]
+        #         }
+        #     ],
+        #     "ts":1606906200680
+        # }
+
         balance = {}
         for item in response['data']:
-            currency = item['symbol']
+            currency = self.safe_string_2(item, 'symbol', 'margin_account')
             total = self.safe_float(item, 'margin_balance')
             margin_position = self.safe_float(item, 'margin_position', 0.0)
             margin_frozen = self.safe_float(item, 'margin_frozen', 0.0)
@@ -1005,13 +1119,14 @@ class huobidm(Exchange):
                 'free': free,
             }
 
-        total = {currency: balance[currency]['total'] for currency in balance}
-        used = {currency: balance[currency]['used'] for currency in balance}
-        free = {currency: balance[currency]['free'] for currency in balance}
-        balance['total'] = total
-        balance['used'] = used
-        balance['free'] = free
+        totalAll = {currency: balance[currency]['total'] for currency in balance}
+        usedAll = {currency: balance[currency]['used'] for currency in balance}
+        freeAll = {currency: balance[currency]['free'] for currency in balance}
+        balance['total'] = totalAll
+        balance['used'] = usedAll
+        balance['free'] = freeAll
         return balance
+        
 
     def fetch_status(self, params=None):
         response = self.generalGetHeartbeat(params or {})
