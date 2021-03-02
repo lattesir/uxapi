@@ -76,6 +76,7 @@ class Binance(UXPatch, binance):
                 'fapiMarket': {
                     'orderbook': '{symbol}@depth{level_speed}',
                     'ohlcv': '{symbol}@kline_{period}',
+                    'continuousKline': '{pair_contractType}@continuousKline_{period}',
                     'aggTrade': '{symbol}@aggTrade',
                     'markPrice': '{symbol}@markPrice{speed_in_seconds}',
                     '!markPrice': '!markPrice@arr@{speed_in_seconds}',
@@ -91,14 +92,16 @@ class Binance(UXPatch, binance):
     def _fetch_markets(self, params=None):
         markets = super()._fetch_markets(params)
         for market in markets:
-            if market['type'] in ('futures', 'swap'):
-                market['contractValue'] = market['info'].get('contractSize')
-                if market['type'] == 'futures':
+            if market['type'].startswith(('futures', 'swap')):
+                if market['type'].endswith('.usdt'):
+                    market['contractValue'] = 1
+                else:
+                    market['contractValue'] = market['info'].get('contractSize')
+
+                if market['type'].startswith('futures'):
                     timestamp = self.safe_integer(market['info'], 'deliveryDate')
                     delivery_time = pendulum.from_timestamp(timestamp / 1000)
                     market['deliveryTime'] = delivery_time.to_iso8601_string()
-            elif market['type'] == 'swap.usdt':
-                market['contractValue'] = 1
         return markets
 
     def order_book_merger(self):
@@ -113,20 +116,18 @@ class Binance(UXPatch, binance):
         return BinanceWSHandler(self, wsurl, topic_set, wsapi_type)
 
     def wsapi_type(self, uxtopic):
-        if uxtopic.market_type in ('futures', 'swap'):
-            prefix = 'dapi'
-        elif uxtopic.market_type == 'swap.usdt':
-            prefix = 'fapi'
-        else:
-            prefix = ''
-
         if uxtopic.maintype == 'private':
             wstype = 'private'
         else:
             wstype = 'market'
 
-        if prefix:
-            return f'{prefix}{wstype[0].upper()}{wstype[1:]}'
+        market_type = uxtopic.market_type
+        if market_type.startswith(('futures', 'swap')):
+            if market_type.endswith('.usdt'):
+                api = 'fapi'
+            else:
+                api = 'dapi'
+            return f'{api}{wstype[0].upper()}{wstype[1:]}'
         else:
             return wstype
 
@@ -134,17 +135,22 @@ class Binance(UXPatch, binance):
         if uxsymbol.market_type in ('spot', 'margin'):
             return uxsymbol.name
 
-        if uxsymbol.market_type == 'futures':
+        market_type = uxsymbol.market_type
+        base, quote = uxsymbol.base_quote
+        if market_type.endswith('.usdt'):
+            base, quote = quote, base
+
+        if market_type.startswith('futures'):
             delivery_time = contract_delivery_time(
                 expiration=uxsymbol.contract_expiration,
-                delivery_hour=self.deliveryHourUTC)
-            return f'{uxsymbol.base}{uxsymbol.quote}_{delivery_time:%y%m%d}'
-
-        if uxsymbol.market_type == 'swap':
-            return f'{uxsymbol.base}{uxsymbol.quote}_PERP'
-
-        if uxsymbol.market_type == 'swap.usdt':
-            return f'{uxsymbol.quote}{uxsymbol.base}'
+                delivery_hour=self.deliveryHourUTC
+            )
+            return f'{base}{quote}_{delivery_time:%y%m%d}'
+        
+        if market_type == 'swap':
+            return f'{base}{quote}_PERP'
+        elif market_type == 'swap.usdt':
+            return f'{base}{quote}'
 
         raise ValueError(f'invalid symbol: {uxsymbol}')
 
@@ -335,5 +341,5 @@ class BinanceOrderBookMerger:
             'limit': 1000,
         }
         market = self.exchange.markets_by_id[market_id]
-        method = self.exchange.method_by_type('publicGetDepth', market['type'])
-        return getattr(self.exchange, method)(params)
+        method = self.exchange.find_method(market['type'], 'publicGetDepth')
+        return method(params)

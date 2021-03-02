@@ -368,10 +368,9 @@ class huobidm(Exchange):
             }
         })
 
-    def find_method(self, market_type, method):
+    def find_method(self, market_type, method_name):
         api = market_type.replace('.', '')
-        method = f'{api}{method}'
-        return getattr(self, method)
+        return getattr(self, f'{api}{method_name}')
 
     def fetch_markets(self, params={}):
         defaultType = self.safe_string_2(self.options, 'fetchMarkets', 'defaultType', 'futures')

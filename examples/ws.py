@@ -68,6 +68,40 @@ binance.margin.private:
     datatype: private
     extrainfo: BTC/USDT
 
+######################
+# Binance Futures-USDT
+######################
+
+binance.futures-usdt.orderbook:
+    exchange_id: binance
+    market_type: futures.usdt
+    datatype: orderbook.5@100ms
+    extrainfo: USDT/BTC.CQ
+
+binance.futures-usdt.orderbook.full:
+    exchange_id: binance
+    market_type: futures.usdt
+    datatype: orderbook.full
+    extrainfo: USDT/BTC.CQ
+
+binance.futures-usdt.continuousKline:
+    exchange_id: binance
+    market_type: futures.usdt
+    datatype: continuousKline
+    extrainfo: btcusdt_current_quarter
+
+binance.futures-usdt.markPrice:
+    exchange_id: binance
+    market_type: futures.usdt
+    datatype: markPrice.1s
+    extrainfo: USDT/BTC.CQ
+
+binance.futures-usdt.private:
+    exchange_id: binance
+    market_type: futures.usdt
+    datatype: private
+    extrainfo: ''
+
 ##################
 # Binance Futures
 ##################

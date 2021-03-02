@@ -333,6 +333,7 @@ class binance(Exchange):
                         'trades',
                         'historicalTrades',
                         'aggTrades',
+                        'continuousKlines',
                         'klines',
                         'fundingRate',
                         'premiumIndex',
@@ -461,7 +462,7 @@ class binance(Exchange):
             'options': {
                 # 'fetchTradesMethod': 'publicGetAggTrades',  # publicGetTrades, publicGetHistoricalTrades
                 'defaultTimeInForce': 'GTC',  # 'GTC' = Good To Cancel(default), 'IOC' = Immediate Or Cancel
-                'defaultType': 'spot',  # 'spot', 'margin', 'futures', 'swap', 'swap.usdt'
+                'defaultType': 'spot',  # 'spot', 'margin', 'futures', 'futures.usdt', 'swap', 'swap.usdt'
                 'hasAlreadyAuthenticatedSuccessfully': False,
                 'warnOnFetchOpenOrdersWithoutSymbol': True,
                 'recvWindow': 5 * 1000,  # 5 sec, binance default
@@ -531,23 +532,21 @@ class binance(Exchange):
     def nonce(self):
         return self.milliseconds() - self.options['timeDifference']
 
-    def method_by_type(self, method, type):
-        if type.startswith(('futures', 'swap')):
-            if type.endswith('.usdt'):
-                prefix = 'fapi'
+    def find_method(self, market_type, method_name):
+        if market_type.startswith(('futures', 'swap')):
+            if market_type.endswith('.usdt'):
+                api = 'fapi'
             else:
-                prefix = 'dapi'
+                api = 'dapi'
+            entrypoint = f'{api}{method_name[0].upper()}{method_name[1:]}'
         else:
-            prefix = ''
-
-        if prefix:
-            method = f'{prefix}{method[0].upper()}{method[1:]}'
-        return method
+            entrypoint = f'{method_name[0].lower()}{method_name[1:]}'
+        return getattr(self, entrypoint)
 
     def fetch_time(self, params={}):
         type = self.safe_string_2(self.options, 'fetchTime', 'defaultType', 'spot')
-        method = self.method_by_type('publicGetTime', type)
-        response = getattr(self, method)(params)
+        method = self.find_method(type, 'PublicGetTime')
+        response = method(params)
         return self.safe_integer(response, 'serverTime')
 
     def load_time_difference(self, params={}):
@@ -560,12 +559,12 @@ class binance(Exchange):
         defaultType = self.safe_string_2(self.options, 'fetchMarkets', 'defaultType', 'spot')
         type = self.safe_string(params, 'type', defaultType)
         query = self.omit(params, 'type')
-        if type not in ('spot', 'futures', 'swap', 'swap.usdt', 'margin'):
+        if type not in ('spot', 'futures', 'futures.usdt', 'swap', 'swap.usdt', 'margin'):
             raise ExchangeError(
                 f"{self.id} does not support '{type}' type, set exchange.options['defaultType'] "
-                f"to 'spot', 'futures', 'swap', 'swap.usdt', 'margin'")
-        method = self.method_by_type('publicGetExchangeInfo', type)
-        response = getattr(self, method)(query)
+                f"to 'spot', 'futures', 'futures.usdt', 'swap', 'swap.usdt', 'margin'")
+        method = self.find_method(type, 'PublicGetExchangeInfo')
+        response = method(query)
         #
         # spot / margin
         #
@@ -654,13 +653,12 @@ class binance(Exchange):
                 contract_type = market.get('contractType')
                 if contract_type == 'PERPETUAL' or contract_type is None:
                     swap = True
-                    if market['quoteAsset'] == 'USDT':
-                        marketType = 'swap.usdt'
-                    else:
-                        marketType = 'swap'
+                    marketType = 'swap'
                 else:
                     futures = True
                     marketType = 'futures'
+                if market['quoteAsset'] == 'USDT':
+                    marketType += '.usdt'
             else:  # spot or margin
                 if type == 'margin' and self.safe_value(market, 'isMarginTradingAllowed'):
                     margin = True
@@ -777,11 +775,11 @@ class binance(Exchange):
         defaultType = self.safe_string_2(self.options, 'fetchBalance', 'defaultType', 'spot')
         type = self.safe_string(params, 'type', defaultType)
         if type == 'margin':
-            method = 'sapiGetMarginAccount'
+            method = getattr(self, 'sapiGetMarginAccount')
         else:
-            method = self.method_by_type('privateGetAccount', type)
+            method = self.find_method(type, 'PrivateGetAccount')
         query = self.omit(params, 'type')
-        response = getattr(self, method)(query)
+        response = method(query)
         #
         # spot
         #
@@ -889,8 +887,8 @@ class binance(Exchange):
         }
         if limit is not None:
             request['limit'] = limit  # default 100, max 5000, see https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#order-book
-        method = self.method_by_type('publicGetDepth', market['type'])
-        response = getattr(self, method)(self.extend(request, params))
+        method = self.find_method(market['type'], 'PublicGetDepth')
+        response = method(self.extend(request, params))
         orderbook = self.parse_order_book(response)
         orderbook['nonce'] = self.safe_integer(response, 'lastUpdateId')
         return orderbook
@@ -944,8 +942,8 @@ class binance(Exchange):
         request = {
             'symbol': market['id'],
         }
-        method = self.method_by_type('publicGetTicker24hr', market['type'])
-        response = getattr(self, method)(self.extend(request, params))
+        method = self.find_method(market['type'], 'PublicGetTicker24hr')
+        response = method(self.extend(request, params))
         if isinstance(response, list):
             firstTicker = self.safe_value(response, 0, {})
             return self.parse_ticker(firstTicker, market)
@@ -962,8 +960,8 @@ class binance(Exchange):
         defaultType = self.safe_string_2(self.options, 'fetchBidsAsks', 'defaultType', 'spot')
         type = self.safe_string(params, 'type', defaultType)
         query = self.omit(params, 'type')
-        method = self.method_by_type('publicGetTickerBookTicker', type)
-        response = getattr(self, method)(query)
+        method = self.find_method(type, 'PublicGetTickerBookTicker')
+        response = method(query)
         return self.parse_tickers(response, symbols)
 
     def fetch_tickers(self, symbols=None, params={}):
@@ -971,8 +969,8 @@ class binance(Exchange):
         defaultType = self.safe_string_2(self.options, 'fetchTickers', 'defaultType', 'spot')
         type = self.safe_string(params, 'type', defaultType)
         query = self.omit(params, 'type')
-        method = self.method_by_type(self.options['fetchTickersMethod'], type)
-        response = getattr(self, method)(query)
+        method = self.find_method(type, self.options['fetchTickersMethod'])
+        response = method(query)
         return self.parse_tickers(response, symbols)
 
     def parse_ohlcv(self, ohlcv, market=None):
@@ -1012,8 +1010,8 @@ class binance(Exchange):
             request['startTime'] = since
         if limit is not None:
             request['limit'] = limit  # default == max == 500
-        method = self.method_by_type('publicGetKlines', market['type'])
-        response = getattr(self, method)(self.extend(request, params))
+        method = self.find_method(market['type'], 'PublicGetKlines')
+        response = method(self.extend(request, params))
         return self.parse_ohlcvs(response, market, timeframe, since, limit)
 
     def parse_trade(self, trade, market=None):
@@ -1144,14 +1142,14 @@ class binance(Exchange):
             # 'endTime': 789,   # Timestamp in ms to get aggregate trades until INCLUSIVE.
             # 'limit': 500,     # default = 500, maximum = 1000
         }
-        method = self.safe_string(self.options, 'fetchTradesMethod', 'publicGetTrades')
-        if method == 'publicGetAggTrades':
+        method_name = self.safe_string(self.options, 'fetchTradesMethod', 'publicGetTrades')
+        if method_name == 'publicGetAggTrades':
             if since is not None:
                 request['startTime'] = since
                 # https://github.com/ccxt/ccxt/issues/6400
                 # https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#compressedaggregate-trades-list
                 request['endTime'] = self.sum(since, 3600000)
-        method = self.method_by_type(method, market['type'])
+        method = self.find_method(market['type'], method_name)
         if limit is not None:
             request['limit'] = limit  # default = 500, maximum = 1000
         #
@@ -1163,7 +1161,7 @@ class binance(Exchange):
         # - 'tradeId' accepted and returned by self method is "aggregate" trade id
         #   which is different from actual trade id
         # - setting both fromId and time window results in error
-        response = getattr(self, method)(self.extend(request, params))
+        response = method(self.extend(request, params))
         #
         # aggregate trades
         #
@@ -1340,9 +1338,9 @@ class binance(Exchange):
         clientOrderId = self.safe_string_2(params, 'newClientOrderId', 'clientOrderId')
         params = self.omit(params, ['newClientOrderId', 'clientOrderId'])
         if market['type'] == 'margin':
-            method = 'sapiPostMarginOrder'
+            method = getattr(self, 'sapiPostMarginOrder')
         else:
-            method = self.method_by_type('privatePostOrder', market['type'])
+            method = self.find_method(market['type'], 'privatePostOrder')
         # the next 5 lines are added to support for testing orders
         test = self.safe_value(params, 'test', False)
         if test:
@@ -1408,7 +1406,7 @@ class binance(Exchange):
             else:
                 params = self.omit(params, 'stopPrice')
                 request['stopPrice'] = self.price_to_precision(symbol, stopPrice)
-        response = getattr(self, method)(self.extend(request, params))
+        response = method(self.extend(request, params))
         return self.parse_order(response, market)
 
     def fetch_order(self, id, symbol=None, params={}):
@@ -1417,9 +1415,9 @@ class binance(Exchange):
         self.load_markets()
         market = self.market(symbol)
         if market['type'] == 'margin':
-            method = 'sapiGetMarginOrder'
+            method = getattr(self, 'sapiGetMarginOrder')
         else:
-            method = self.method_by_type('privateGetOrder', market['type'])
+            method = self.find_method(market['type'], 'privateGetOrder')
         request = {
             'symbol': market['id'],
         }
@@ -1429,7 +1427,7 @@ class binance(Exchange):
         else:
             request['orderId'] = int(id)
         query = self.omit(params, ['clientOrderId', 'origClientOrderId'])
-        response = getattr(self, method)(self.extend(request, query))
+        response = method(self.extend(request, query))
         return self.parse_order(response, market)
 
     def fetch_orders(self, symbol=None, since=None, limit=None, params={}):
@@ -1438,9 +1436,9 @@ class binance(Exchange):
         self.load_markets()
         market = self.market(symbol)
         if market['type'] == 'margin':
-            method = 'sapiGetMarginAllOrders'
+            method = getattr(self, 'sapiGetMarginAllOrders')
         else:
-            method = self.method_by_type('privateGetAllOrders', market['type'])
+            method = self.find_method(market['type'], 'PrivateGetAllOrders')
         request = {
             'symbol': market['id'],
         }
@@ -1448,7 +1446,7 @@ class binance(Exchange):
             request['startTime'] = since
         if limit is not None:
             request['limit'] = limit
-        response = getattr(self, method)(self.extend(request, params))
+        response = method(self.extend(request, params))
         #
         #  spot
         #
@@ -1516,10 +1514,10 @@ class binance(Exchange):
             type = self.safe_string(params, 'type', defaultType)
             query = self.omit(params, 'type')
         if type == 'margin':
-            method = 'sapiGetMarginOpenOrders'
+            method = getattr(self, 'sapiGetMarginOpenOrders')
         else:
-            method = self.method_by_type('privateGetOpenOrders', type)
-        response = getattr(self, method)(self.extend(request, query))
+            method = self.find_method(type, 'PrivateGetOpenOrders')
+        response = method(self.extend(request, query))
         return self.parse_orders(response, market, since, limit)
 
     def fetch_closed_orders(self, symbol=None, since=None, limit=None, params={}):
@@ -1543,10 +1541,10 @@ class binance(Exchange):
         else:
             request['origClientOrderId'] = origClientOrderId
         if market['type'] == 'margin':
-            method = 'sapiDeleteMarginOrder'
+            method = getattr(self, 'sapiDeleteMarginOrder')
         else:
-            method = self.method_by_type('privateDeleteOrder', market['type'])
-        response = getattr(self, method)(self.extend(request, params))
+            method = self.find_method(market['type'], 'PrivateDeleteOrder')
+        response = method(self.extend(request, params))
         return self.parse_order(response)
 
     def cancel_all_orders(self, symbol=None, params={}):
@@ -1558,10 +1556,10 @@ class binance(Exchange):
             'symbol': market['id'],
         }
         if market['type'] == 'spot':
-            method = 'privateDeleteOpenOrders'
+            method = getattr(self, 'privateDeleteOpenOrders')
         else:
-            method = self.method_by_type('privateDeleteAllOpenOrders', market['type'])
-        response = getattr(self, method)(self.extend(request, params))
+            method = self.find_method(market['type'], 'PrivateDeleteAllOpenOrders')
+        response = method(self.extend(request, params))
         if isinstance(response, list):
             return self.parse_orders(response, market)
         else:
@@ -1573,9 +1571,9 @@ class binance(Exchange):
         self.load_markets()
         market = self.market(symbol)
         if market['type'] == 'spot':
-            method = 'privateGetMyTrades'
+            method = getattr(self, 'privateGetMyTrades')
         else:
-            method = self.method_by_type('privateGetUserTrades', market['type'])
+            method = self.find_method(market['type'], 'PrivateGetUserTrades')
         request = {
             'symbol': market['id'],
         }
@@ -1583,7 +1581,7 @@ class binance(Exchange):
             request['startTime'] = since
         if limit is not None:
             request['limit'] = limit
-        response = getattr(self, method)(self.extend(request, params))
+        response = method(self.extend(request, params))
         #
         # spot trade
         #     [
