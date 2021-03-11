@@ -969,7 +969,7 @@ class binance(Exchange):
         defaultType = self.safe_string_2(self.options, 'fetchTickers', 'defaultType', 'spot')
         type = self.safe_string(params, 'type', defaultType)
         query = self.omit(params, 'type')
-        method = self.find_method(type, self.options['fetchTickersMethod'])
+        method = self.find_method(type, 'PublicGetTicker24hr')
         response = method(query)
         return self.parse_tickers(response, symbols)
 
