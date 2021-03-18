@@ -73,6 +73,7 @@ class huobidm(Exchange):
                         'market/depth',                 # 获取行情深度数据
                         'market/history/kline',         # 获取K线数据
                         'market/detail/merged',         # 获取聚合行情
+                        'market/detail/batch_merged',   # 批量获取聚合行情
                         'market/trade',                 # 获取市场最近成交记录
                         'market/history/trade',         # 批量获取最近的交易记录
                         'risk_info',                    # 查询合约风险准备金余额和预估分摊比例
@@ -135,6 +136,7 @@ class huobidm(Exchange):
                         'market/depth',                 # 获取行情深度数据
                         'market/history/kline',         # 获取K线数据
                         'market/detail/merged',         # 获取聚合行情
+                        'market/detail/batch_merged',   # 批量获取聚合行情
                         'market/trade',                 # 获取市场最近成交记录
                         'market/history/trade',         # 批量获取最近的交易记录
                         'risk_info',                    # 查询合约风险准备金余额和预估分摊比例
@@ -201,6 +203,7 @@ class huobidm(Exchange):
                         'market/depth',                 # 获取行情深度数据
                         'market/history/kline',         # 获取K线数据
                         'market/detail/merged',         # 获取聚合行情
+                        'market/detail/batch_merged',   # 批量获取聚合行情
                         'market/trade',                 # 获取市场最近成交记录
                         'market/history/trade',         # 批量获取最近的交易记录
                         'risk_info',                    # 查询合约风险准备金余额和预估分摊比例
@@ -459,7 +462,18 @@ class huobidm(Exchange):
         response = method(self.extend(request, params or {}))
         return self.parse_ticker(response['tick'], market)
 
-    def parse_ticker(self, ticker, market):
+    def fetch_tickers(self, symbols=None, params=None):
+        self.load_markets()
+        type = self.safe_string_2(self.options, 'fetchTickers', 'defaultType', 'futures')
+        method = self.find_method(type, 'GetMarketDetailBatchMerged')
+        response = method(params or {})
+        return self.parse_tickers(response['ticks'], symbols)
+        
+    def parse_tickers(self, raw_tickers, symbols=None):
+        tickers = [self.parse_ticker(ticker) for ticker in raw_tickers]
+        return self.filter_by_array(tickers, 'symbol', symbols)
+
+    def parse_ticker(self, ticker, market=None):
         # {
         #   "amount": "260479.503",
         #   "ask": [10253.4, 829],
@@ -500,8 +514,14 @@ class huobidm(Exchange):
         vwap = None
         if baseVolume is not None and quoteVolume is not None and baseVolume > 0:
             vwap = quoteVolume / baseVolume
+
+        if market:
+            symbol = market['symbol']
+        else:
+            symbol = self.safe_string_2(ticker, 'symbol', 'contract_code')
+
         return {
-            'symbol': market['symbol'],
+            'symbol': symbol,
             'timestamp': timestamp,
             'datetime': self.iso8601(timestamp),
             'high': self.safe_float(ticker, 'high'),
