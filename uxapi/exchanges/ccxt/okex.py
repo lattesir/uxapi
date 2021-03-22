@@ -1668,8 +1668,10 @@ class okex(Exchange):
                 symbol = self.markets_by_id[marketId]['symbol']
             account = self.account()
             # it may be incorrect to use total, free and used for swap accounts
-            account['total'] = self.safe_float(balance, 'equity')
-            account['free'] = self.safe_float(balance, 'total_avail_balance')
+            total = self.safe_float(balance, 'equity')
+            used = self.safe_float(balance, 'margin')
+            account['total'] = total
+            account['free'] = total - used
             result[symbol] = account
         return self.parse_balance(result)
 
