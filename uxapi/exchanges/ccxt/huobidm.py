@@ -214,6 +214,7 @@ class huobidm(Exchange):
                         'elite_position_ratio',         # 精英账户多空持仓对比-持仓量
                         'api_state',                    # 查询系统状态
                         'funding_rate',                 # 获取合约的资金费率
+                        'batch_funding_rate',           # 批量获取合约的资金费率
                         'historical_funding_rate',      # 获取合约的历史资金费率
                         'liquidation_orders',           # 获取强平订单
                         'index/market/history/linear_swap_premium_index_kline',     # 获取合约的溢价指数K线
