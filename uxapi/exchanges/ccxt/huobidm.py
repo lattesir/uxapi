@@ -900,7 +900,7 @@ class huobidm(Exchange):
         if fee_cost is not None:
             fee = {
                 'cost': fee_cost,
-                'currency': currency,
+                'currency': self.safe_string(order, 'fee_asset'),
             }
         return {
             'id': self.safe_string(order, 'order_id'),
