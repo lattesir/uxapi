@@ -18,7 +18,7 @@ from uxapi.helpers import deep_extend, is_sorted, contract_delivery_time
 @register_exchange('binance')
 class Binance(UXPatch, binance):
     def __init__(self, market_type, config=None):
-        return super().__init__(market_type, deep_extend({
+        super().__init__(market_type, deep_extend({
             'options': {
                 'defaultType': market_type,
             }

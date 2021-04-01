@@ -24,7 +24,7 @@ from uxapi.helpers import (
 class Okex(UXPatch, okex):
     def __init__(self, market_type, config=None):
         fetch_market_option = ['spot'] if market_type == 'margin' else [market_type]
-        return super().__init__(market_type, deep_extend({
+        super().__init__(market_type, deep_extend({
             'options': {
                 'fetchMarkets': fetch_market_option,
                 'defaultType': market_type,

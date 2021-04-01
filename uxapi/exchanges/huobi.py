@@ -284,7 +284,7 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
 
 class Huobidm(UXPatch, huobidm):
     def __init__(self, market_type, config=None):
-        return super().__init__(market_type, self.deep_extend({
+        super().__init__(market_type, self.deep_extend({
             'options': {'defaultType': market_type}
         }, config or {}))
 
