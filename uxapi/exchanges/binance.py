@@ -146,7 +146,7 @@ class Binance(UXPatch, binance):
                 delivery_hour=self.deliveryHourUTC
             )
             return f'{base}{quote}_{delivery_time:%y%m%d}'
-        
+
         if market_type == 'swap':
             return f'{base}{quote}_PERP'
         elif market_type == 'swap.usdt':

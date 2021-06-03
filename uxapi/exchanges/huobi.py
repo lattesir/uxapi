@@ -260,10 +260,10 @@ class HuobiproOrderBookMerger(_HuobiOrderBookMerger):
         snapshot_tick['ts'] = patch['ts']
         if 'asks' in patch_tick:
             self.merge_asks_bids(snapshot_tick['asks'], patch_tick['asks'],
-                                self.prices['asks'], False)
+                                 self.prices['asks'], False)
         if 'bids' in patch_tick:
             self.merge_asks_bids(snapshot_tick['bids'], patch_tick['bids'],
-                                self.prices['bids'], True)
+                                 self.prices['bids'], True)
 
     def start_wsreq(self):
         self.wsreq = HuobiWSReq(self.exchange, 'mbp')
@@ -551,7 +551,7 @@ class HuobiWSHandler(WSHandler):
 
         if login_msg:
             if login_ok:
-                self.logger.info(f'logged in')
+                self.logger.info('logged in')
                 self.on_logged_in()
                 raise StopIteration
             else:

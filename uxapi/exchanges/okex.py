@@ -240,7 +240,7 @@ class OkexWSHandler(WSHandler):
 
     def on_login_message(self, msg):
         if msg.get('event') == 'login':
-            self.logger.info(f'logged in')
+            self.logger.info('logged in')
             self.on_logged_in()
             raise StopIteration
         else:
