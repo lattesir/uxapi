@@ -133,6 +133,7 @@ class binance(Exchange):
                         'margin/priceIndex',
                         # these endpoints require self.apiKey + self.secret
                         'asset/assetDividend',
+                        'asset/tradeFee',
                         'margin/loan',
                         'margin/repay',
                         'margin/account',
@@ -302,6 +303,7 @@ class binance(Exchange):
                         'leverageBracket',
                         'forceOrders',
                         'adlQuantile',
+                        'commissionRate',
                     ],
                     'post': [
                         'positionSide/dual',
@@ -370,6 +372,7 @@ class binance(Exchange):
                         'income',
                         'adlQuantile',
                         'forceOrders',
+                        'commissionRate',
                     ],
                     'post': [
                         'batchOrders',
