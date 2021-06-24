@@ -139,6 +139,7 @@ class binance(Exchange):
                         'margin/account',
                         'margin/transfer',
                         'margin/interestHistory',
+                        'margin/interestRateHistory',
                         'margin/forceLiquidationRec',
                         'margin/order',
                         'margin/openOrders',
