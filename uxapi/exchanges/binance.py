@@ -284,7 +284,7 @@ class BinanceOrderBookMerger:
         snapshot = self.future.result()
         self.future = None
         array = [patch['data']['u'] for patch in self.cache]
-        i = bisect.bisect_right(array, snapshot['lastUpdateId'])
+        i = bisect.bisect_right(array, int(snapshot['lastUpdateId']))
         self.cache = self.cache[i:]
         self.on_snapshot(snapshot)
         return self.snapshot
