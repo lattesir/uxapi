@@ -501,7 +501,7 @@ class huobidm(Exchange):
             if isinstance(ticker['ask'], list):
                 ask = self.safe_float(ticker['ask'], 0)
                 askVolume = self.safe_float(ticker['ask'], 1)
-        open_ = self.safe_float(ticker, 'open')
+        open_ = self.safe_float(ticker, 'open') or None
         close = self.safe_float(ticker, 'close')
         change = None
         percentage = None
